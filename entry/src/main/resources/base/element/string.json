@@ -1,0 +1,308 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "生活记录主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "生活记录应用入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "生活记录"
+    },
+    {
+      "name": "todo_form_label",
+      "value": "今日待办"
+    },
+    {
+      "name": "todo_form_desc",
+      "value": "显示今日待办事项卡片"
+    },
+    {
+      "name": "quick_post_form_label",
+      "value": "快捷记录"
+    },
+    {
+      "name": "quick_post_form_desc",
+      "value": "快速发布动态卡片"
+    },
+    {
+      "name": "read_media_reason",
+      "value": "用于选择相册图片发布动态"
+    },
+    {
+      "name": "write_media_reason",
+      "value": "用于保存手账和导出的图片"
+    },
+    {
+      "name": "camera_reason",
+      "value": "用于拍摄照片记录生活"
+    },
+    {
+      "name": "location_reason",
+      "value": "用于记录动态发布时的位置信息"
+    },
+    {
+      "name": "internet_reason",
+      "value": "用于获取天气信息"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
+    },
+    {
+      "name": "tab_diary",
+      "value": "日记"
+    },
+    {
+      "name": "tab_category",
+      "value": "分类"
+    },
+    {
+      "name": "tab_plog",
+      "value": "手账"
+    },
+    {
+      "name": "add_todo_placeholder",
+      "value": "添加新任务..."
+    },
+    {
+      "name": "yesterday_carryover",
+      "value": "昨日未完成"
+    },
+    {
+      "name": "today_tasks",
+      "value": "今日任务"
+    },
+    {
+      "name": "post_content_placeholder",
+      "value": "分享此刻的想法..."
+    },
+    {
+      "name": "select_location",
+      "value": "选择位置"
+    },
+    {
+      "name": "publish",
+      "value": "发布"
+    },
+    {
+      "name": "reading_template_title",
+      "value": "阅读记录"
+    },
+    {
+      "name": "expense_template_title",
+      "value": "记账"
+    },
+    {
+      "name": "ootd_template_title",
+      "value": "今日穿搭"
+    },
+    {
+      "name": "create_plog",
+      "value": "创建手账"
+    },
+    {
+      "name": "my_plogs",
+      "value": "我的手账本"
+    },
+    {
+      "name": "one_click_plog",
+      "value": "一键做手账"
+    },
+    {
+      "name": "tab_todo",
+      "value": "待办"
+    },
+    {
+      "name": "tab_setting",
+      "value": "设置"
+    },
+    {
+      "name": "setting_title",
+      "value": "设置"
+    },
+    {
+      "name": "setting_appearance",
+      "value": "外观"
+    },
+    {
+      "name": "setting_dark_mode",
+      "value": "深色模式"
+    },
+    {
+      "name": "setting_about",
+      "value": "关于"
+    },
+    {
+      "name": "setting_version",
+      "value": "版本"
+    },
+    {
+      "name": "setting_clear_data",
+      "value": "清除数据"
+    },
+    {
+      "name": "setting_clear_data_desc",
+      "value": "清除所有待办、日记和手账数据"
+    },
+    {
+      "name": "setting_clear_confirm_title",
+      "value": "确认清除"
+    },
+    {
+      "name": "setting_clear_confirm_msg",
+      "value": "此操作将清除所有数据，不可恢复，确定继续吗？"
+    },
+    {
+      "name": "setting_confirm",
+      "value": "确定"
+    },
+    {
+      "name": "setting_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "setting_cleared",
+      "value": "数据已清除"
+    },
+    {
+      "name": "plog_create_new",
+      "value": "创建新手账"
+    },
+    {
+      "name": "plog_empty_hint",
+      "value": "还没有手账作品"
+    },
+    {
+      "name": "plog_empty_sub_hint",
+      "value": "点击上方按钮创建你的第一本手账吧"
+    },
+    {
+      "name": "moment_title",
+      "value": "随手记"
+    },
+    {
+      "name": "moment_post_placeholder",
+      "value": "分享此刻的想法..."
+    },
+    {
+      "name": "moment_add_photo",
+      "value": "照片/视频"
+    },
+    {
+      "name": "moment_add_location",
+      "value": "添加位置"
+    },
+    {
+      "name": "moment_publish",
+      "value": "发布"
+    },
+    {
+      "name": "moment_manage",
+      "value": "管理"
+    },
+    {
+      "name": "moment_organize_collection",
+      "value": "整理合集"
+    },
+    {
+      "name": "moment_view_collections",
+      "value": "我的合集"
+    },
+    {
+      "name": "moment_to_plog",
+      "value": "生成手账"
+    },
+    {
+      "name": "moment_view_plog",
+      "value": "手账本"
+    },
+    {
+      "name": "moment_no_posts",
+      "value": "还没有随手记"
+    },
+    {
+      "name": "moment_no_posts_hint",
+      "value": "点击右下角 + 记录此刻吧"
+    },
+    {
+      "name": "moment_manage_daily",
+      "value": "管理今日记录"
+    },
+    {
+      "name": "moment_select_posts",
+      "value": "选择要整理的记录"
+    },
+    {
+      "name": "moment_collection_name",
+      "value": "合集名称"
+    },
+    {
+      "name": "moment_collection_name_placeholder",
+      "value": "给合集起个名字..."
+    },
+    {
+      "name": "moment_create_collection",
+      "value": "创建合集"
+    },
+    {
+      "name": "moment_collection_created",
+      "value": "合集已创建"
+    },
+    {
+      "name": "moment_delete",
+      "value": "删除"
+    },
+    {
+      "name": "moment_delete_confirm",
+      "value": "确定删除这条记录？"
+    },
+    {
+      "name": "moment_posted_at",
+      "value": "发布于"
+    },
+    {
+      "name": "setting_theme_title",
+      "value": "主题颜色"
+    },
+    {
+      "name": "setting_theme_desc",
+      "value": "选择你喜欢的主题配色"
+    },
+    {
+      "name": "setting_theme_orange",
+      "value": "活力橙"
+    },
+    {
+      "name": "setting_theme_blue",
+      "value": "深海蓝"
+    },
+    {
+      "name": "setting_theme_green",
+      "value": "森林绿"
+    },
+    {
+      "name": "setting_theme_purple",
+      "value": "优雅紫"
+    },
+    {
+      "name": "setting_theme_pink",
+      "value": "樱花粉"
+    },
+    {
+      "name": "setting_theme_selected",
+      "value": "当前使用"
+    },
+    {
+      "name": "plog_generate_from_posts",
+      "value": "将今日随手记整理为手账"
+    },
+    {
+      "name": "plog_generate_success",
+      "value": "手账生成成功"
+    }
+  ]
+}

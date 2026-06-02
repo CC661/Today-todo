@@ -1,0 +1,8 @@
+{
+  "modelVersion": "6.1.0",
+  "description": "生活记录App - 融合待办与手账的鸿蒙原生应用",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

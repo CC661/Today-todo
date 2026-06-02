@@ -1,0 +1,10 @@
+{
+  "src": [
+    "pages/HomePage",
+    "pages/DiaryPage",
+    "pages/CategoryPage",
+    "pages/PlogEditorPage",
+    "pages/PlogGalleryPage",
+    "pages/SettingPage"
+  ]
+}

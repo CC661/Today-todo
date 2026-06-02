@@ -1,0 +1,68 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "primary_color",
+      "value": "#FF6B35"
+    },
+    {
+      "name": "secondary_color",
+      "value": "#004E89"
+    },
+    {
+      "name": "background_color",
+      "value": "#F8F9FA"
+    },
+    {
+      "name": "card_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "text_primary",
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#666666"
+    },
+    {
+      "name": "text_hint",
+      "value": "#999999"
+    },
+    {
+      "name": "divider_color",
+      "value": "#E5E5E5"
+    },
+    {
+      "name": "success_color",
+      "value": "#52C41A"
+    },
+    {
+      "name": "warning_color",
+      "value": "#FAAD14"
+    },
+    {
+      "name": "error_color",
+      "value": "#FF4D4F"
+    },
+    {
+      "name": "todo_pending",
+      "value": "#FF6B35"
+    },
+    {
+      "name": "todo_completed",
+      "value": "#BFBFBF"
+    },
+    {
+      "name": "calendar_today",
+      "value": "#FF6B35"
+    },
+    {
+      "name": "calendar_selected",
+      "value": "#004E89"
+    }
+  ]
+}
