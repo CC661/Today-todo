@@ -208,6 +208,25 @@ export class PreferencesUtil {
   async setLastOpenDate(date: string): Promise<void> {
     await this.saveString(AppConstants.PREF_LAST_DATE, date);
   }
+
+  /**
+   * 获取合集列表
+   */
+  async getCollections(): Promise<string[]> {
+    const json = await this.getString(AppConstants.PREF_COLLECTIONS, '[]');
+    try {
+      return JSON.parse(json) as string[];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * 保存合集列表
+   */
+  async saveCollections(collections: string[]): Promise<void> {
+    await this.saveString(AppConstants.PREF_COLLECTIONS, JSON.stringify(collections));
+  }
 }
 
 export default PreferencesUtil.getInstance();

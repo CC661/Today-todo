@@ -60,6 +60,7 @@ export class AppConstants {
   static readonly PREF_THEME = 'theme_mode';
   static readonly PREF_FIRST_LAUNCH = 'first_launch';
   static readonly PREF_LAST_DATE = 'last_open_date';
+  static readonly PREF_COLLECTIONS = 'collections_list';
 }
 
 export default AppConstants;
