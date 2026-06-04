@@ -796,59 +796,78 @@ class HomePage extends ViewPU {
                     imageUris.push(...post.mediaUrls);
                 }
             }
-            // 检查是否已有今日手账
-            const existingPlog = await PlogViewModel.getPlogByDate(today);
-            if (existingPlog && existingPlog.id !== 0) {
-                // 追加元素到现有手账
-                const currentElements = existingPlog.elements || [];
-                const startIndex = currentElements.length;
-                imageUris.forEach((uri, idx) => {
-                    currentElements.push({
-                        type: 'image',
-                        x: 20 + ((startIndex + idx) % 3) * 120,
-                        y: 100 + Math.floor((startIndex + idx) / 3) * 150,
-                        width: 100,
-                        height: 100,
-                        rotation: 0,
-                        content: uri,
-                        zIndex: startIndex + idx
-                    });
-                });
-                existingPlog.elements = currentElements;
-                await PlogViewModel.updatePlog(existingPlog);
-            }
-            else {
-                // 创建新手账
-                const elements: CanvasElement[] = imageUris.map((uri, idx) => {
-                    const element: CanvasElement = {
-                        type: 'image',
-                        x: 20 + (idx % 3) * 120,
-                        y: 100 + Math.floor(idx / 3) * 150,
-                        width: 100,
-                        height: 100,
-                        rotation: 0,
-                        content: uri,
-                        zIndex: idx
-                    };
-                    return element;
-                });
-                const insertParams: PlogInsertParams = {
-                    date: today,
-                    backgroundImage: '',
-                    elements: elements,
-                    createdAt: Date.now(),
-                    thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+            // 始终创建新手账，支持同一天生成多个手账
+            const elements: CanvasElement[] = imageUris.map((uri, idx) => {
+                const element: CanvasElement = {
+                    type: 'image',
+                    x: 20 + (idx % 3) * 120,
+                    y: 100 + Math.floor(idx / 3) * 150,
+                    width: 100,
+                    height: 100,
+                    rotation: 0,
+                    content: uri,
+                    zIndex: idx
                 };
-                await PlogViewModel.createPlog(insertParams);
-            }
+                return element;
+            });
+            const insertParams: PlogInsertParams = {
+                date: today,
+                backgroundImage: '',
+                elements: elements,
+                diaryIds: todayPosts.map((post: DiaryPost) => post.id),
+                createdAt: Date.now(),
+                thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+            };
+            await PlogViewModel.createPlog(insertParams);
             promptAction.showToast({ message: { "id": 16777255, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         }
         catch (error) {
             console.error('生成手账失败:', error);
         }
     }
-    navigateToPlogEditor(): void {
-        router.pushUrl({ url: 'pages/PlogEditorPage' });
+    async generatePlogFromSelected(): Promise<void> {
+        if (this.selectedMomentIds.size === 0) {
+            promptAction.showToast({ message: '请先选择记录' });
+            return;
+        }
+        try {
+            const selectedPosts = this.moments.filter((m: DiaryPost) => this.selectedMomentIds.has(m.id));
+            const imageUris: string[] = [];
+            for (const post of selectedPosts) {
+                if (post.mediaUrls && post.mediaUrls.length > 0) {
+                    imageUris.push(...post.mediaUrls);
+                }
+            }
+            const elements: CanvasElement[] = imageUris.map((uri, idx) => {
+                const element: CanvasElement = {
+                    type: 'image',
+                    x: 20 + (idx % 3) * 120,
+                    y: 100 + Math.floor(idx / 3) * 150,
+                    width: 100,
+                    height: 100,
+                    rotation: 0,
+                    content: uri,
+                    zIndex: idx
+                };
+                return element;
+            });
+            const today = DateUtils.getToday();
+            const insertParams: PlogInsertParams = {
+                date: today,
+                backgroundImage: '',
+                elements: elements,
+                diaryIds: selectedPosts.map((post: DiaryPost) => post.id),
+                createdAt: Date.now(),
+                thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+            };
+            await PlogViewModel.createPlog(insertParams);
+            this.selectedMomentIds.clear();
+            this.isMultiSelectMode = false;
+            promptAction.showToast({ message: '制作成功' });
+        }
+        catch (error) {
+            console.error('制作手账失败:', error);
+        }
     }
     navigateToPlogGallery(): void {
         router.pushUrl({ url: 'pages/PlogGalleryPage' });
@@ -904,7 +923,7 @@ class HomePage extends ViewPU {
                 {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         if (isInitialRender) {
-                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 490, col: 11 });
+                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 511, col: 11 });
                             ViewPU.create(componentCall);
                             let paramsLambda = () => {
                                 return {};
@@ -1001,7 +1020,7 @@ class HomePage extends ViewPU {
                         currentWeek: this.currentWeek,
                         selectedDate: this.selectedDate,
                         onDateSelected: (date: string) => this.onDateSelected(date)
-                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 560, col: 7 });
+                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 581, col: 7 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
                         return {
@@ -1040,7 +1059,7 @@ class HomePage extends ViewPU {
                                         this.onDateSelected(date);
                                         this.toggleCalendar();
                                     }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 568, col: 9 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 589, col: 9 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
@@ -1153,7 +1172,7 @@ class HomePage extends ViewPU {
                                     onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
                                     onDelete: (id: number) => { this.deleteTodo(id); },
                                     onReorder: (fromIndex: number, toIndex: number) => { }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 621, col: 9 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 642, col: 9 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
@@ -1429,61 +1448,59 @@ class HomePage extends ViewPU {
             Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            If.create();
-            // 搜索框
-            if (this.showSearchBar) {
-                this.ifElseBranchUpdateFunction(0, () => {
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Row.create({ space: 8 });
-                        Row.width('100%');
-                        Row.padding({ left: 16, right: 16, top: 8, bottom: 8 });
-                        Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Row.transition(TransitionEffect.translate({ y: '-100%' })
-                            .animation({ duration: 250, curve: Curve.EaseOut }));
-                    }, Row);
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        TextInput.create({
-                            placeholder: '搜索时间、内容、地点…',
-                            text: this.searchKeyword
-                        });
-                        TextInput.placeholderColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        TextInput.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        TextInput.height(36);
-                        TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        TextInput.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        TextInput.layoutWeight(1);
-                        TextInput.onChange((value: string) => {
-                            this.searchKeyword = value;
-                        });
-                    }, TextInput);
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Button.createWithChild();
-                        Button.width(32);
-                        Button.height(32);
-                        Button.backgroundColor(Color.Transparent);
-                        Button.onClick(() => {
-                            Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
-                                this.showSearchBar = false;
-                            });
-                            this.searchKeyword = '';
-                        });
-                    }, Button);
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        SymbolGlyph.fontSize(14);
-                        SymbolGlyph.fontColor([{ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
-                    }, SymbolGlyph);
-                    Button.pop();
-                    Row.pop();
+            // 搜索框（从导航栏下方展开，非整体滑入）
+            Column.create();
+            // 搜索框（从导航栏下方展开，非整体滑入）
+            Column.width('100%');
+            // 搜索框（从导航栏下方展开，非整体滑入）
+            Column.clip(true);
+            // 搜索框（从导航栏下方展开，非整体滑入）
+            Column.height(this.showSearchBar ? 52 : 0);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 8 });
+            Row.width('100%');
+            Row.padding({ left: 16, right: 16, top: 8, bottom: 8 });
+            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({
+                placeholder: '搜索时间、内容、地点…',
+                text: this.searchKeyword
+            });
+            TextInput.placeholderColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.height(36);
+            TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.layoutWeight(1);
+            TextInput.enabled(this.showSearchBar);
+            TextInput.onChange((value: string) => {
+                this.searchKeyword = value;
+            });
+        }, TextInput);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.enabled(this.showSearchBar);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showSearchBar = false;
                 });
-            }
-            // 随手记列表
-            else {
-                this.ifElseBranchUpdateFunction(1, () => {
-                });
-            }
-        }, If);
-        If.pop();
+                this.searchKeyword = '';
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(14);
+            SymbolGlyph.fontColor([{ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        Button.pop();
+        Row.pop();
+        // 搜索框（从导航栏下方展开，非整体滑入）
+        Column.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
             // 随手记列表
@@ -2505,7 +2522,14 @@ class HomePage extends ViewPU {
             // 制作手账
             Button.backgroundColor(Color.Transparent);
             // 制作手账
-            Button.onClick(() => this.generatePlogFromToday());
+            Button.onClick(() => {
+                if (this.isMultiSelectMode && this.selectedMomentIds.size > 0) {
+                    this.generatePlogFromSelected();
+                }
+                else {
+                    this.generatePlogFromToday();
+                }
+            });
         }, Button);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create({ space: 2 });

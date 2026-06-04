@@ -52,6 +52,18 @@ export class PlogViewModel {
         }
     }
     /**
+     * 根据 ID 获取手账
+     */
+    async getPlogById(id: number): Promise<PlogCanvas | null> {
+        try {
+            return await this.dbUtil.queryPlogById(id);
+        }
+        catch (e) {
+            console.error('根据ID获取手账失败:', JSON.stringify(e));
+            return null;
+        }
+    }
+    /**
      * 获取所有手账列表
      */
     async getAllPlogs(): Promise<PlogCanvas[]> {

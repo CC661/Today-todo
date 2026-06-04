@@ -22,6 +22,7 @@ export interface PlogCanvas {
   date: string;
   backgroundImage: string;
   elements: CanvasElement[];  // 画布元素数组
+  diaryIds?: number[];        // 关联的随手记ID
   createdAt: number;
   thumbnail: string;          // 缩略图
 }

@@ -52,6 +52,13 @@ export class RDBStoreUtil {
             await this.rdbStore.executeSql(AppConstants.CREATE_TODOS_TABLE_SQL);
             await this.rdbStore.executeSql(AppConstants.CREATE_DIARY_POSTS_TABLE_SQL);
             await this.rdbStore.executeSql(AppConstants.CREATE_PLOG_CANVASES_TABLE_SQL);
+            // 兼容旧版本：为plog_canvases表添加diary_ids列
+            try {
+                await this.rdbStore.executeSql('ALTER TABLE plog_canvases ADD COLUMN diary_ids TEXT');
+            }
+            catch (e) {
+                // 列已存在则忽略
+            }
             console.info('数据表创建完成');
         }
         catch (e) {
@@ -385,6 +392,7 @@ export class RDBStoreUtil {
                 'date': plog.date,
                 'background_image': plog.backgroundImage,
                 'elements': JSON.stringify(plog.elements),
+                'diary_ids': plog.diaryIds ? JSON.stringify(plog.diaryIds) : '',
                 'created_at': plog.createdAt,
                 'thumbnail': plog.thumbnail
             };
@@ -407,6 +415,7 @@ export class RDBStoreUtil {
             const valuesBucket: relationalStore.ValuesBucket = {
                 'background_image': plog.backgroundImage,
                 'elements': JSON.stringify(plog.elements),
+                'diary_ids': plog.diaryIds ? JSON.stringify(plog.diaryIds) : '',
                 'thumbnail': plog.thumbnail
             };
             const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_PLOG_CANVASES);
@@ -415,6 +424,20 @@ export class RDBStoreUtil {
         }
         catch (e) {
             console.error('更新手账失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 解析diary_ids字符串为数字数组
+     */
+    private parseDiaryIds(diaryIdsStr: string): number[] {
+        if (!diaryIdsStr || diaryIdsStr.trim() === '') {
+            return [];
+        }
+        try {
+            return JSON.parse(diaryIdsStr) as number[];
+        }
+        catch (e) {
+            return [];
         }
     }
     /**
@@ -435,6 +458,7 @@ export class RDBStoreUtil {
                 const dateVal = resultSet.getValue(resultSet.getColumnIndex('date'));
                 const bgImgVal = resultSet.getValue(resultSet.getColumnIndex('background_image'));
                 const elementsVal = resultSet.getValue(resultSet.getColumnIndex('elements'));
+                const diaryIdsVal = resultSet.getValue(resultSet.getColumnIndex('diary_ids'));
                 const createdAtVal = resultSet.getValue(resultSet.getColumnIndex('created_at'));
                 const thumbnailVal = resultSet.getValue(resultSet.getColumnIndex('thumbnail'));
                 plogs.push({
@@ -442,6 +466,7 @@ export class RDBStoreUtil {
                     date: dateVal as string,
                     backgroundImage: bgImgVal as string,
                     elements: JSON.parse(elementsVal as string),
+                    diaryIds: this.parseDiaryIds(diaryIdsVal as string),
                     createdAt: createdAtVal as number,
                     thumbnail: thumbnailVal as string
                 });
@@ -452,6 +477,45 @@ export class RDBStoreUtil {
         catch (e) {
             console.error('查询手账失败:', JSON.stringify(e));
             return [];
+        }
+    }
+    /**
+     * 根据 ID 查询手账
+     */
+    async queryPlogById(id: number): Promise<PlogCanvas | null> {
+        if (!this.rdbStore) {
+            console.error('数据库未初始化');
+            return null;
+        }
+        try {
+            const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_PLOG_CANVASES);
+            predicates.equalTo('id', id);
+            const resultSet = await this.rdbStore.query(predicates);
+            let plog: PlogCanvas | null = null;
+            if (resultSet.goToNextRow()) {
+                const idVal = resultSet.getValue(resultSet.getColumnIndex('id'));
+                const dateVal = resultSet.getValue(resultSet.getColumnIndex('date'));
+                const bgImgVal = resultSet.getValue(resultSet.getColumnIndex('background_image'));
+                const elementsVal = resultSet.getValue(resultSet.getColumnIndex('elements'));
+                const diaryIdsVal = resultSet.getValue(resultSet.getColumnIndex('diary_ids'));
+                const createdAtVal = resultSet.getValue(resultSet.getColumnIndex('created_at'));
+                const thumbnailVal = resultSet.getValue(resultSet.getColumnIndex('thumbnail'));
+                plog = {
+                    id: idVal as number,
+                    date: dateVal as string,
+                    backgroundImage: bgImgVal as string,
+                    elements: JSON.parse(elementsVal as string),
+                    diaryIds: this.parseDiaryIds(diaryIdsVal as string),
+                    createdAt: createdAtVal as number,
+                    thumbnail: thumbnailVal as string
+                };
+            }
+            resultSet.close();
+            return plog;
+        }
+        catch (e) {
+            console.error('根据ID查询手账失败:', JSON.stringify(e));
+            return null;
         }
     }
     /**
@@ -471,6 +535,7 @@ export class RDBStoreUtil {
                 const dateVal = resultSet.getValue(resultSet.getColumnIndex('date'));
                 const bgImgVal = resultSet.getValue(resultSet.getColumnIndex('background_image'));
                 const elementsVal = resultSet.getValue(resultSet.getColumnIndex('elements'));
+                const diaryIdsVal = resultSet.getValue(resultSet.getColumnIndex('diary_ids'));
                 const createdAtVal = resultSet.getValue(resultSet.getColumnIndex('created_at'));
                 const thumbnailVal = resultSet.getValue(resultSet.getColumnIndex('thumbnail'));
                 plogs.push({
@@ -478,6 +543,7 @@ export class RDBStoreUtil {
                     date: dateVal as string,
                     backgroundImage: bgImgVal as string,
                     elements: JSON.parse(elementsVal as string),
+                    diaryIds: this.parseDiaryIds(diaryIdsVal as string),
                     createdAt: createdAtVal as number,
                     thumbnail: thumbnailVal as string
                 });
@@ -547,6 +613,7 @@ export interface PlogInsertParams {
     date: string;
     backgroundImage: string;
     elements: CanvasElement[];
+    diaryIds?: number[];
     createdAt: number;
     thumbnail: string;
 }

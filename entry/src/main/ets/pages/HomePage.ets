@@ -401,52 +401,30 @@ struct HomePage {
         }
       }
 
-      // 检查是否已有今日手账
-      const existingPlog = await PlogViewModel.getPlogByDate(today);
-
-      if (existingPlog && existingPlog.id !== 0) {
-        // 追加元素到现有手账
-        const currentElements = existingPlog.elements || [];
-        const startIndex = currentElements.length;
-        imageUris.forEach((uri, idx) => {
-          currentElements.push({
-            type: 'image',
-            x: 20 + ((startIndex + idx) % 3) * 120,
-            y: 100 + Math.floor((startIndex + idx) / 3) * 150,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            content: uri,
-            zIndex: startIndex + idx
-          });
-        });
-        existingPlog.elements = currentElements;
-        await PlogViewModel.updatePlog(existingPlog);
-      } else {
-        // 创建新手账
-        const elements: CanvasElement[] = imageUris.map((uri, idx) => {
-          const element: CanvasElement = {
-            type: 'image',
-            x: 20 + (idx % 3) * 120,
-            y: 100 + Math.floor(idx / 3) * 150,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            content: uri,
-            zIndex: idx
-          };
-          return element;
-        });
-
-        const insertParams: PlogInsertParams = {
-          date: today,
-          backgroundImage: '',
-          elements: elements,
-          createdAt: Date.now(),
-          thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+      // 始终创建新手账，支持同一天生成多个手账
+      const elements: CanvasElement[] = imageUris.map((uri, idx) => {
+        const element: CanvasElement = {
+          type: 'image',
+          x: 20 + (idx % 3) * 120,
+          y: 100 + Math.floor(idx / 3) * 150,
+          width: 100,
+          height: 100,
+          rotation: 0,
+          content: uri,
+          zIndex: idx
         };
-        await PlogViewModel.createPlog(insertParams);
-      }
+        return element;
+      });
+
+      const insertParams: PlogInsertParams = {
+        date: today,
+        backgroundImage: '',
+        elements: elements,
+        diaryIds: todayPosts.map((post: DiaryPost) => post.id),
+        createdAt: Date.now(),
+        thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+      };
+      await PlogViewModel.createPlog(insertParams);
 
       promptAction.showToast({ message: $r('app.string.plog_generate_success') });
     } catch (error) {
@@ -454,8 +432,51 @@ struct HomePage {
     }
   }
 
-  navigateToPlogEditor(): void {
-    router.pushUrl({ url: 'pages/PlogEditorPage' });
+  async generatePlogFromSelected(): Promise<void> {
+    if (this.selectedMomentIds.size === 0) {
+      promptAction.showToast({ message: '请先选择记录' });
+      return;
+    }
+    try {
+      const selectedPosts = this.moments.filter((m: DiaryPost) => this.selectedMomentIds.has(m.id));
+      const imageUris: string[] = [];
+      for (const post of selectedPosts) {
+        if (post.mediaUrls && post.mediaUrls.length > 0) {
+          imageUris.push(...post.mediaUrls);
+        }
+      }
+
+      const elements: CanvasElement[] = imageUris.map((uri, idx) => {
+        const element: CanvasElement = {
+          type: 'image',
+          x: 20 + (idx % 3) * 120,
+          y: 100 + Math.floor(idx / 3) * 150,
+          width: 100,
+          height: 100,
+          rotation: 0,
+          content: uri,
+          zIndex: idx
+        };
+        return element;
+      });
+
+      const today = DateUtils.getToday();
+      const insertParams: PlogInsertParams = {
+        date: today,
+        backgroundImage: '',
+        elements: elements,
+        diaryIds: selectedPosts.map((post: DiaryPost) => post.id),
+        createdAt: Date.now(),
+        thumbnail: imageUris.length > 0 ? imageUris[0] : ''
+      };
+      await PlogViewModel.createPlog(insertParams);
+
+      this.selectedMomentIds.clear();
+      this.isMultiSelectMode = false;
+      promptAction.showToast({ message: '制作成功' });
+    } catch (error) {
+      console.error('制作手账失败:', error);
+    }
   }
 
   navigateToPlogGallery(): void {
@@ -791,8 +812,8 @@ struct HomePage {
         Divider()
           .color($r('app.color.divider_color'))
 
-        // 搜索框
-        if (this.showSearchBar) {
+        // 搜索框（从导航栏下方展开，非整体滑入）
+        Column() {
           Row({ space: 8 }) {
             TextInput({
               placeholder: '搜索时间、内容、地点…',
@@ -804,6 +825,7 @@ struct HomePage {
               .backgroundColor($r('app.color.background_color'))
               .borderRadius($r('app.float.border_radius_md'))
               .layoutWeight(1)
+              .enabled(this.showSearchBar)
               .onChange((value: string) => {
                 this.searchKeyword = value;
               })
@@ -816,6 +838,7 @@ struct HomePage {
             .width(32)
             .height(32)
             .backgroundColor(Color.Transparent)
+            .enabled(this.showSearchBar)
             .onClick(() => {
               animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
                 this.showSearchBar = false;
@@ -826,9 +849,10 @@ struct HomePage {
           .width('100%')
           .padding({ left: 16, right: 16, top: 8, bottom: 8 })
           .backgroundColor($r('app.color.card_background'))
-          .transition(TransitionEffect.translate({ y: '-100%' })
-            .animation({ duration: 250, curve: Curve.EaseOut }))
         }
+        .width('100%')
+        .clip(true)
+        .height(this.showSearchBar ? 52 : 0)
 
         // 随手记列表
         if (this.momentsLoading) {
@@ -1442,7 +1466,13 @@ struct HomePage {
         .layoutWeight(1)
         .height('100%')
         .backgroundColor(Color.Transparent)
-        .onClick(() => this.generatePlogFromToday())
+        .onClick(() => {
+          if (this.isMultiSelectMode && this.selectedMomentIds.size > 0) {
+            this.generatePlogFromSelected();
+          } else {
+            this.generatePlogFromToday();
+          }
+        })
       }
       .layoutWeight(1)
       .height('100%')

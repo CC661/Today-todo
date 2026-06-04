@@ -39,6 +39,7 @@ export class AppConstants {
       date TEXT NOT NULL,
       background_image TEXT,
       elements TEXT NOT NULL,
+      diary_ids TEXT,
       created_at INTEGER NOT NULL,
       thumbnail TEXT
     )
