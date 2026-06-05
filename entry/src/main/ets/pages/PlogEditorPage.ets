@@ -1,17 +1,43 @@
 import PlogViewModel from '../viewmodel/PlogViewModel';
 import DiaryViewModel from '../viewmodel/DiaryViewModel';
-import type { PlogCanvas, CanvasElement, BgType, PatternType } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection } from '../model/PlogCanvas';
 import type { DiaryPost } from '../model/DiaryPost';
 import type { TodoItem } from '../model/TodoItem';
 import type { PlogInsertParams } from '../common/database/RDBStoreUtil';
 import DateUtils from '../common/utils/DateUtils';
-import { router, curves, componentSnapshot } from '@kit.ArkUI';
-import { promptAction } from '@kit.ArkUI';
+import { router, curves, componentSnapshot, promptAction, font } from '@kit.ArkUI';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { image } from '@kit.ImageKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { common } from '@kit.AbilityKit';
 
 class PatternItem {
   type: PatternType = 'horizontal';
+  label: string = '';
+}
+
+class FontStyleItem {
+  style: TextStyle = 'normal';
+  label: string = '';
+}
+
+class TextAlignItem {
+  align: TextAlign = TextAlign.Center;
+  label: string = '';
+}
+
+class VerticalAlignItem {
+  va: number = 1;
+  label: string = '';
+}
+
+class FontWeightItem {
+  w: number = 400;
+  label: string = '';
+}
+
+class DirectionItem {
+  dir: TextDirection = 'horizontal';
   label: string = '';
 }
 
@@ -24,6 +50,8 @@ struct PlogEditorPage {
   @State plog: PlogCanvas | null = null;
   @State elements: CanvasElement[] = [];
   @State selectedElementIndex: number = -1;
+  @State editingTextIndex: number = -1;
+  @State editingTextValue: string = '';
   @State showMaterialPanel: boolean = false;
 
   // 随手记相关
@@ -57,7 +85,7 @@ struct PlogEditorPage {
 
   // 取色器状态
   @State showEyedropper: boolean = false;
-  private eyedropperTarget: number = 0;  // 0=背景色, 1=花纹色
+  private eyedropperTarget: number = 0;  // 0=背景色, 1=花纹色, 2=文字色
   private eyedropperPixelMap: image.PixelMap | null = null;
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private eyedropperCanvasContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
@@ -65,10 +93,66 @@ struct PlogEditorPage {
 
   private plogIdFromParams: number = 0;
   private diaryIdsFromParams: number[] = [];
-  private textSubTools: string[] = ['样式', '颜色', '排版', '粗斜体', '弯曲'];
+  private textSubTools: string[] = ['样式', '颜色', '排版', '粗斜体'];
   private bgSubTools: string[] = ['纯色', '渐变', '花纹', '自定义'];
+  private resizeStartWidth: number = 0;
+  private resizeStartHeight: number = 0;
+  private dragStartX: number = 0;
+  private dragStartY: number = 0;
+
+  // ---- 文字工具状态 ----
+  @State textFontStyle: TextStyle = 'normal';
+  @State textFontSize: number = 16;
+  @State textShadowOpacity: number = 0;
+  @State textColor: string = '#333333';
+  @State textOpacity: number = 100;
+  @State textColorHue: number = 0;
+  @State textColorSaturation: number = 0;
+  @State textAlign: TextAlign = TextAlign.Center;
+  @State textVerticalAlign: number = 1; // 0=Top 1=Center 2=Bottom
+  @State textDirection: TextDirection = 'horizontal';
+  @State textLineSpacing: number = 1.2;
+  @State textLetterSpacing: number = 0;
+  @State textFontWeight: number = 400;
+  @State textItalicAngle: number = 0;
+  @State newTextContent: string = '';
+
+  // 字体风格预设映射: styleKey -> fontFamily名
+  private fontStyleMap: Record<string, string> = {
+    'normal': '',
+    'handwrite': 'LXGWWenKaiLite',
+    'serif': 'serif',
+    'mono': 'monospace',
+    'art': 'LXGWWenKai',
+    'kuaile': 'ZCOOLKuaiLe',
+    'brush': 'MaShanZheng',
+    'xiaowei': 'ZCOOLXiaoWei',
+    'caoshu': 'LiuJianMaoCao',
+    'zhimangxing': 'ZhiMangXing',
+    'longcang': 'LongCang',
+    'pacifico': 'Pacifico',
+    'dancing': 'DancingScript',
+    'lobster': 'Lobster',
+    'greatvibes': 'GreatVibes',
+    'caveat': 'Caveat',
+  };
 
   aboutToAppear(): void {
+    // 注册自定义字体（必须使用 $rawfile() 函数格式）
+    font.registerFont({ familyName: 'LXGWWenKai', familySrc: $rawfile('LXGWWenKai-Regular.ttf') });
+    font.registerFont({ familyName: 'LXGWWenKaiLite', familySrc: $rawfile('LXGWWenKaiLite-Regular.ttf') });
+    font.registerFont({ familyName: 'ZCOOLKuaiLe', familySrc: $rawfile('ZCOOLKuaiLe-Regular.ttf') });
+    font.registerFont({ familyName: 'MaShanZheng', familySrc: $rawfile('MaShanZheng-Regular.ttf') });
+    font.registerFont({ familyName: 'ZCOOLXiaoWei', familySrc: $rawfile('ZCOOLXiaoWei-Regular.ttf') });
+    font.registerFont({ familyName: 'LiuJianMaoCao', familySrc: $rawfile('LiuJianMaoCao-Regular.ttf') });
+    font.registerFont({ familyName: 'ZhiMangXing', familySrc: $rawfile('ZhiMangXing-Regular.ttf') });
+    font.registerFont({ familyName: 'LongCang', familySrc: $rawfile('LongCang-Regular.ttf') });
+    font.registerFont({ familyName: 'Pacifico', familySrc: $rawfile('Pacifico-Regular.ttf') });
+    font.registerFont({ familyName: 'DancingScript', familySrc: $rawfile('DancingScript-Regular.ttf') });
+    font.registerFont({ familyName: 'Lobster', familySrc: $rawfile('Lobster-Regular.ttf') });
+    font.registerFont({ familyName: 'GreatVibes', familySrc: $rawfile('GreatVibes-Regular.ttf') });
+    font.registerFont({ familyName: 'Caveat', familySrc: $rawfile('Caveat-Regular.ttf') });
+
     const params = router.getParams() as Record<string, Object> | null;
     if (params) {
       if (params['plogId']) {
@@ -187,15 +271,17 @@ struct PlogEditorPage {
     animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
       this.activeSubTool = subIndex;
     });
-    // 切换标签时同步更新底色类型（花纹作为独立叠加层不受影响）
-    if (subIndex === 0) {
-      this.bgType = 'solid';
-    } else if (subIndex === 1) {
-      this.bgType = 'gradient';
-    } else if (subIndex === 3) {
-      // 自定义标签页，不自动切换 bgType，由 pickCustomBg 处理
+    // 仅在背景工具下同步更新底色类型
+    if (this.activeToolTab === 1) {
+      if (subIndex === 0) {
+        this.bgType = 'solid';
+      } else if (subIndex === 1) {
+        this.bgType = 'gradient';
+      } else if (subIndex === 3) {
+        // 自定义标签页，不自动切换 bgType，由 pickCustomBg 处理
+      }
+      this.applyBgToPlog();
     }
-    this.applyBgToPlog();
   }
 
   /**
@@ -373,8 +459,11 @@ struct PlogEditorPage {
       if (this.eyedropperTarget === 0) {
         this.bgColor = pickedColor;
         this.bgType = 'solid';
-      } else {
+      } else if (this.eyedropperTarget === 1) {
         this.patternColor = pickedColor;
+      } else if (this.eyedropperTarget === 2) {
+        this.textColor = pickedColor;
+        this.applyTextPropsToSelected();
       }
       this.applyBgToPlog();
       this.showEyedropper = false;
@@ -419,14 +508,26 @@ struct PlogEditorPage {
         content: post.content,
         zIndex: baseIndex,
         fontSize: 14,
-        color: '#333333'
-      };
-      this.elements.push(textElement);
-    }
+        color: '#333333',
+        textOpacity: 100,
+      fontStyle: 'normal',
+      fontFamily: '',
+      shadowOpacity: 0,
+      textAlign: TextAlign.Start,
+      verticalAlign: 1,
+      textDirection: 'horizontal',
+      lineSpacing: 1.2,
+      letterSpacing: 0,
+      fontWeight: 400,
+      italicAngle: 0,
+      _version: 0,
+    };
+    this.elements.push(textElement);
+  }
 
-    // 添加图片
-    if (post.mediaUrls && post.mediaUrls.length > 0) {
-      post.mediaUrls.forEach((url, idx) => {
+  // 添加图片
+  if (post.mediaUrls && post.mediaUrls.length > 0) {
+    post.mediaUrls.forEach((url, idx) => {
         const imgElement: CanvasElement = {
           type: 'image',
           x: 20 + ((baseIndex + idx) % 3) * 120,
@@ -447,7 +548,7 @@ struct PlogEditorPage {
   /**
    * 添加文字元素
    */
-  addTextElement(): void {
+  addTextElement(content?: string): void {
     const element: CanvasElement = {
       type: 'text',
       x: 50,
@@ -455,10 +556,22 @@ struct PlogEditorPage {
       width: 200,
       height: 40,
       rotation: 0,
-      content: '双击编辑文字',
+      content: content || '双击编辑文字',
       zIndex: this.elements.length,
       fontSize: 16,
-      color: '#333333'
+      color: '#333333',
+      textOpacity: 100,
+      fontStyle: 'normal',
+      fontFamily: '',
+      shadowOpacity: 0,
+      textAlign: TextAlign.Center,
+      verticalAlign: 1,
+      textDirection: 'horizontal',
+      lineSpacing: 1.2,
+      letterSpacing: 0,
+      fontWeight: 400,
+      italicAngle: 0,
+      _version: 0,
     };
     this.elements.push(element);
     this.activeToolTab = -1;
@@ -481,6 +594,102 @@ struct PlogEditorPage {
     this.elements.push(element);
   }
 
+  /** 将文字属性面板的值应用到选中的文字元素 */
+  applyTextPropsToSelected(): void {
+    const idx = this.selectedElementIndex;
+    if (idx < 0 || idx >= this.elements.length) return;
+    const el = this.elements[idx];
+    if (el.type !== 'text') return;
+    // 创建新对象以触发 @State 响应式更新
+    const newEl: CanvasElement = {
+      type: el.type,
+      x: el.x,
+      y: el.y,
+      width: el.width,
+      height: el.height,
+      rotation: el.rotation,
+      content: el.content,
+      zIndex: el.zIndex,
+      fontSize: this.textFontSize,
+      color: this.textColor,
+      textOpacity: this.textOpacity,
+      fontStyle: this.textFontStyle,
+      fontFamily: this.fontStyleMap[this.textFontStyle] || '',
+      shadowOpacity: this.textShadowOpacity,
+      textAlign: this.textAlign,
+      verticalAlign: this.textVerticalAlign,
+      textDirection: this.textDirection,
+      lineSpacing: this.textLineSpacing,
+      letterSpacing: this.textLetterSpacing,
+      fontWeight: this.textFontWeight,
+      italicAngle: this.textItalicAngle,
+      _version: (el._version ?? 0) + 1,
+    };
+    this.elements[idx] = newEl;
+    this.elements = [...this.elements];
+  }
+
+  /** 从选中的文字元素加载属性到面板 */
+  loadTextPropsFromSelected(): void {
+    const idx = this.selectedElementIndex;
+    if (idx < 0 || idx >= this.elements.length) return;
+    const el = this.elements[idx];
+    if (el.type !== 'text') return;
+    this.textFontSize = el.fontSize ?? 16;
+    this.textColor = el.color ?? '#333333';
+    this.textOpacity = el.textOpacity ?? 100;
+    this.textFontStyle = el.fontStyle ?? 'normal';
+    this.textShadowOpacity = el.shadowOpacity ?? 0;
+    this.textAlign = el.textAlign ?? TextAlign.Center;
+    this.textVerticalAlign = el.verticalAlign ?? 1;
+    this.textDirection = el.textDirection ?? 'horizontal';
+    this.textLineSpacing = el.lineSpacing ?? 1.2;
+    this.textLetterSpacing = el.letterSpacing ?? 0;
+    this.textFontWeight = el.fontWeight ?? 400;
+    this.textItalicAngle = el.italicAngle ?? 0;
+  }
+
+  /** 删除指定元素 */
+  deleteElement(index: number): void {
+    this.elements.splice(index, 1);
+    if (this.selectedElementIndex === index) {
+      this.selectedElementIndex = -1;
+    } else if (this.selectedElementIndex > index) {
+      this.selectedElementIndex--;
+    }
+  }
+
+  /** 复制指定元素 */
+  duplicateElement(index: number): void {
+    const el = this.elements[index];
+    const clone: CanvasElement = {
+      type: el.type,
+      x: el.x + 20,
+      y: el.y + 20,
+      width: el.width,
+      height: el.height,
+      rotation: el.rotation,
+      content: el.content,
+      zIndex: this.elements.length,
+      fontSize: el.fontSize,
+      color: el.color,
+      textOpacity: el.textOpacity,
+      fontStyle: el.fontStyle,
+      fontFamily: el.fontFamily,
+      shadowOpacity: el.shadowOpacity,
+      textAlign: el.textAlign,
+      verticalAlign: el.verticalAlign,
+      textDirection: el.textDirection,
+      lineSpacing: el.lineSpacing,
+      letterSpacing: el.letterSpacing,
+      fontWeight: el.fontWeight,
+      italicAngle: el.italicAngle,
+      _version: 0,
+    };
+    this.elements.push(clone);
+    this.selectedElementIndex = this.elements.length - 1;
+  }
+
   /**
    * 保存手账
    */
@@ -494,6 +703,9 @@ struct PlogEditorPage {
       if (this.diaryIdsFromParams.length > 0 && !this.plog.diaryIds) {
         this.plog.diaryIds = [...this.diaryIdsFromParams];
       }
+
+      // 生成缩略图
+      await this.generateThumbnail();
 
       if (this.plog.id === 0) {
         const insertParams: PlogInsertParams = {
@@ -526,6 +738,37 @@ struct PlogEditorPage {
     } catch (error) {
       console.error('保存手账失败:', error);
       promptAction.showToast({ message: '保存失败' });
+    }
+  }
+
+  /**
+   * 生成缩略图：截图画布 → 缩放 → 保存到缓存目录
+   */
+  async generateThumbnail(): Promise<void> {
+    try {
+      const pixelMap: image.PixelMap = await componentSnapshot.get('plogCanvas');
+      // 缩放到缩略图尺寸
+      const scale = 200 / Math.max(pixelMap.getImageInfoSync().size.width, 1);
+      pixelMap.scaleSync(scale, scale);
+      // 编码为 PNG
+      const imagePackerApi = image.createImagePacker();
+      const packOpts: image.PackingOption = { format: 'image/png', quality: 80 };
+      const data: ArrayBuffer = await imagePackerApi.packing(pixelMap, packOpts);
+      imagePackerApi.release();
+      pixelMap.release();
+      // 保存到应用缓存目录
+      const context = getContext(this) as common.UIAbilityContext;
+      const thumbnailDir = context.cacheDir + '/thumbnails';
+      if (!fs.accessSync(thumbnailDir)) {
+        fs.mkdirSync(thumbnailDir);
+      }
+      const thumbnailPath = thumbnailDir + `/plog_${this.plog!.id}_${Date.now()}.png`;
+      const file: fs.File = fs.openSync(thumbnailPath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+      fs.writeSync(file.fd, data);
+      fs.closeSync(file);
+      this.plog!.thumbnail = thumbnailPath;
+    } catch (error) {
+      console.error('生成缩略图失败:', error);
     }
   }
 
@@ -569,7 +812,19 @@ struct PlogEditorPage {
           content: `今日任务:\n${todoText}`,
           zIndex: materials.posts.length,
           fontSize: 14,
-          color: '#333333'
+          color: '#333333',
+          textOpacity: 100,
+          fontStyle: 'normal',
+          fontFamily: '',
+          shadowOpacity: 0,
+          textAlign: TextAlign.Start,
+          verticalAlign: 1,
+          textDirection: 'horizontal',
+          lineSpacing: 1.2,
+          letterSpacing: 0,
+          fontWeight: 400,
+          italicAngle: 0,
+          _version: 0,
         };
         this.elements.push(textElement);
       }
@@ -578,6 +833,8 @@ struct PlogEditorPage {
       if (this.plog) {
         this.plog.elements = this.elements;
         this.applyBgToPlog();
+        // 生成缩略图
+        await this.generateThumbnail();
         // 保存关联的随手记ID
         this.plog.diaryIds = materials.posts.map((post: DiaryPost) => post.id);
         if (this.plog.id === 0) {
@@ -649,10 +906,12 @@ struct PlogEditorPage {
           ? $r('app.color.primary_color')
           : $r('app.color.text_secondary'))
         .fontWeight(this.activeSubTool === subIndex ? FontWeight.Medium : FontWeight.Normal)
+        .textAlign(TextAlign.Center)
     }
+    .layoutWeight(1)
     .height('100%')
-    .padding({ left: 16, right: 16 })
     .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
     .border({
       width: { bottom: this.activeSubTool === subIndex ? 2 : 0 },
       color: $r('app.color.primary_color')
@@ -1061,65 +1320,492 @@ struct PlogEditorPage {
       .transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut }))
     } else if (this.activeToolTab === 2) {
       // 文字详细设置（根据子工具切换）
-      Column() {
-        if (this.activeSubTool === 0) {
-          Text('选择文字样式')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
-            .margin({ bottom: 12 })
-          Row({ space: 12 }) {
-            Text('常规').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-            Text('手写').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-            Text('艺术').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-          }
-        } else if (this.activeSubTool === 1) {
-          Text('选择文字颜色')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
-            .margin({ bottom: 12 })
+      Scroll() {
+        Column() {
+          // 顶部：添加新文字
           Row({ space: 10 }) {
-            ForEach(['#333333', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#000000'],
-              (color: string) => {
-                Column()
+            TextInput({ placeholder: '输入文字内容', text: this.newTextContent })
+              .fontSize(14)
+              .layoutWeight(1)
+              .height(40)
+              .backgroundColor('#F5F5F5')
+              .borderRadius(8)
+              .padding({ left: 12, right: 12 })
+              .onChange((value: string) => {
+                this.newTextContent = value;
+              })
+            Text('+')
+              .fontSize(24)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+              .width(40)
+              .height(40)
+              .textAlign(TextAlign.Center)
+              .backgroundColor($r('app.color.primary_color'))
+              .borderRadius(20)
+              .onClick(() => {
+                if (this.newTextContent.trim()) {
+                  this.addTextElement(this.newTextContent.trim());
+                  this.newTextContent = '';
+                }
+              })
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .margin({ bottom: 16 })
+
+          if (this.activeSubTool === 0) {
+            // ===== 样式 =====
+            // 风格选择（标签与选项同一行，横向滚动）
+            Row({ space: 8 }) {
+              Text('风格')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+              Scroll() {
+                Row({ space: 8 }) {
+                  ForEach([
+                    { style: 'normal' as TextStyle, label: '常规' },
+                    { style: 'handwrite' as TextStyle, label: '文楷' },
+                    { style: 'serif' as TextStyle, label: '衬线' },
+                    { style: 'mono' as TextStyle, label: '等宽' },
+                    { style: 'kuaile' as TextStyle, label: '快乐' },
+                    { style: 'brush' as TextStyle, label: '毛笔' },
+                    { style: 'xiaowei' as TextStyle, label: '小薇' },
+                    { style: 'caoshu' as TextStyle, label: '草书' },
+                    { style: 'zhimangxing' as TextStyle, label: '志芒' },
+                    { style: 'longcang' as TextStyle, label: '龙藏' },
+                    { style: 'pacifico' as TextStyle, label: 'Pacifico' },
+                    { style: 'dancing' as TextStyle, label: 'Dancing' },
+                    { style: 'lobster' as TextStyle, label: 'Lobster' },
+                    { style: 'greatvibes' as TextStyle, label: 'GreatVibes' },
+                    { style: 'caveat' as TextStyle, label: 'Caveat' },
+                  ], (item: FontStyleItem) => {
+                    Column() {
+                      Text(item.label)
+                        .fontSize(item.style === 'pacifico' || item.style === 'dancing' || item.style === 'lobster' || item.style === 'greatvibes' || item.style === 'caveat' ? 9 : 12)
+                        .fontColor(this.textFontStyle === item.style
+                          ? $r('app.color.primary_color')
+                          : $r('app.color.text_primary'))
+                        .fontWeight(this.textFontStyle === item.style ? FontWeight.Medium : FontWeight.Normal)
+                        .fontFamily(this.fontStyleMap[item.style] || undefined)
+                    }
+                    .width(item.style === 'greatvibes' ? 72 : 52)
+                    .height(36)
+                    .justifyContent(FlexAlign.Center)
+                    .backgroundColor(this.textFontStyle === item.style ? '#FFF0E8' : '#F5F5F5')
+                    .borderRadius(18)
+                    .border({
+                      width: this.textFontStyle === item.style ? 1.5 : 0,
+                      color: $r('app.color.primary_color')
+                    })
+                    .onClick(() => {
+                      this.textFontStyle = item.style;
+                      this.applyTextPropsToSelected();
+                    })
+                  }, (item: FontStyleItem) => item.style)
+                }
+              }
+              .layoutWeight(1)
+              .scrollBar(BarState.Off)
+              .scrollable(ScrollDirection.Horizontal)
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .alignItems(VerticalAlign.Center)
+            .margin({ bottom: 12 })
+
+            // 大小
+            Row() {
+              Text('大小')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.textFontSize, min: 8, max: 72, step: 1 })
+                .layoutWeight(1)
+                .onChange((value: number) => {
+                  this.textFontSize = value;
+                  this.applyTextPropsToSelected();
+                })
+              Text(`${Math.round(this.textFontSize)}`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(28)
+            }
+            .width('100%')
+            .margin({ bottom: 12 })
+
+            // 阴影透明度
+            Row() {
+              Text('阴影')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.textShadowOpacity, min: 0, max: 100, step: 1 })
+                .layoutWeight(1)
+                .onChange((value: number) => {
+                  this.textShadowOpacity = value;
+                  this.applyTextPropsToSelected();
+                })
+              Text(`${Math.round(this.textShadowOpacity)}%`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(36)
+            }
+            .width('100%')
+
+          } else if (this.activeSubTool === 1) {
+            // ===== 颜色 =====（参照背景纯色设置）
+            Scroll() {
+              Column({ space: 12 }) {
+                Row({ space: 10 }) {
+                  // 吸色笔
+                  Column() {
+                    Text('吸')
+                      .fontSize(14)
+                      .fontColor($r('app.color.primary_color'))
+                      .fontWeight(FontWeight.Medium)
+                  }
+                  .width(36)
+                  .height(36)
+                  .borderRadius(18)
+                  .justifyContent(FlexAlign.Center)
+                  .backgroundColor('#FFF0E8')
+                  .border({ width: 1.5, color: $r('app.color.primary_color') })
+                  .onClick(() => this.startEyedropper(2))
+
+                  ForEach(['#333333', '#000000', '#FFFFFF', '#FF6B6B', '#4ECDC4', '#45B7D1',
+                    '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A65', '#64B5F6', '#81C784'],
+                    (color: string) => {
+                      Column()
+                        .width(32)
+                        .height(32)
+                        .backgroundColor(color)
+                        .borderRadius(16)
+                        .border({
+                          width: this.textColor === color ? 2 : 0.5,
+                          color: this.textColor === color ? $r('app.color.primary_color') : '#CCCCCC'
+                        })
+                        .onClick(() => {
+                          this.textColor = color;
+                          this.applyTextPropsToSelected();
+                        })
+                    }, (color: string) => color)
+                }
+                .width('100%')
+                .justifyContent(FlexAlign.Center)
+
+                Row() {
+                  Text('色相')
+                    .fontSize($r('app.float.font_size_sm'))
+                    .fontColor($r('app.color.text_secondary'))
+                    .width(40)
+                  Slider({ value: this.textColorHue, min: 0, max: 360, step: 1 })
+                    .layoutWeight(1)
+                    .selectedColor(this.hslToHex(this.textColorHue, this.textColorSaturation))
+                    .onChange((value: number) => {
+                      this.textColorHue = value;
+                      this.textColor = this.hslToHex(this.textColorHue, this.textColorSaturation);
+                      this.applyTextPropsToSelected();
+                    })
+                  Text(`${Math.round(this.textColorHue)}°`)
+                    .fontSize($r('app.float.font_size_xs'))
+                    .fontColor($r('app.color.text_hint'))
+                    .width(36)
+                }
+                .width('100%')
+
+                Row() {
+                  Text('饱和度')
+                    .fontSize($r('app.float.font_size_sm'))
+                    .fontColor($r('app.color.text_secondary'))
+                    .width(40)
+                  Slider({ value: this.textColorSaturation, min: 0, max: 100, step: 1 })
+                    .layoutWeight(1)
+                    .selectedColor(this.hslToHex(this.textColorHue, this.textColorSaturation))
+                    .onChange((value: number) => {
+                      this.textColorSaturation = value;
+                      this.textColor = this.hslToHex(this.textColorHue, this.textColorSaturation);
+                      this.applyTextPropsToSelected();
+                    })
+                  Text(`${Math.round(this.textColorSaturation)}%`)
+                    .fontSize($r('app.float.font_size_xs'))
+                    .fontColor($r('app.color.text_hint'))
+                    .width(36)
+                }
+                .width('100%')
+
+                Row() {
+                  Text('透明度')
+                    .fontSize($r('app.float.font_size_sm'))
+                    .fontColor($r('app.color.text_secondary'))
+                    .width(40)
+                  Slider({ value: this.textOpacity, min: 0, max: 100, step: 1 })
+                    .layoutWeight(1)
+                    .onChange((value: number) => {
+                      this.textOpacity = value;
+                      this.applyTextPropsToSelected();
+                    })
+                  Text(`${Math.round(this.textOpacity)}%`)
+                    .fontSize($r('app.float.font_size_xs'))
+                    .fontColor($r('app.color.text_hint'))
+                    .width(36)
+                }
+                .width('100%')
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+            }
+            .width('100%')
+            .scrollBar(BarState.Off)
+
+          } else if (this.activeSubTool === 2) {
+            // ===== 排版 =====
+            Row({ space: 12 }) {
+              // 横竖切换
+              Row({ space: 0 }) {
+                Column() {
+                  Text('横')
+                    .fontSize(13)
+                    .fontColor(this.textDirection === 'horizontal' ? Color.White : '#666666')
+                    .fontWeight(FontWeight.Medium)
+                }
+                .width(36)
+                .height(28)
+                .justifyContent(FlexAlign.Center)
+                .backgroundColor(this.textDirection === 'horizontal' ? $r('app.color.primary_color') : 'transparent')
+                .borderRadius(14)
+                .onClick(() => {
+                  this.textDirection = 'horizontal';
+                  this.applyTextPropsToSelected();
+                })
+
+                Column() {
+                  Text('竖')
+                    .fontSize(13)
+                    .fontColor(this.textDirection === 'vertical' ? Color.White : '#666666')
+                    .fontWeight(FontWeight.Medium)
+                }
+                .width(36)
+                .height(28)
+                .justifyContent(FlexAlign.Center)
+                .backgroundColor(this.textDirection === 'vertical' ? $r('app.color.primary_color') : 'transparent')
+                .borderRadius(14)
+                .onClick(() => {
+                  this.textDirection = 'vertical';
+                  this.applyTextPropsToSelected();
+                })
+              }
+              .width(72)
+              .height(32)
+              .backgroundColor('#F0F0F0')
+              .borderRadius(16)
+
+              // 对齐方式
+              if (this.textDirection === 'horizontal') {
+                Row({ space: 6 }) {
+                  ForEach([
+                    { align: TextAlign.Start, label: '左对齐' },
+                    { align: TextAlign.Center, label: '居中' },
+                    { align: TextAlign.End, label: '右对齐' },
+                  ], (item: TextAlignItem) => {
+                    Column() {
+                      Text(item.label)
+                        .fontSize(12)
+                        .fontColor(this.textAlign === item.align
+                          ? $r('app.color.primary_color')
+                          : $r('app.color.text_primary'))
+                    }
+                    .layoutWeight(1)
+                    .height(32)
+                    .justifyContent(FlexAlign.Center)
+                    .backgroundColor(this.textAlign === item.align ? '#FFF0E8' : '#F5F5F5')
+                    .borderRadius(16)
+                    .border({
+                      width: this.textAlign === item.align ? 1.5 : 0,
+                      color: $r('app.color.primary_color')
+                    })
+                    .onClick(() => {
+                      this.textAlign = item.align;
+                      this.applyTextPropsToSelected();
+                    })
+                  }, (item: TextAlignItem) => item.label)
+                }
+                .layoutWeight(1)
+                .height(32)
+              } else {
+                Row({ space: 6 }) {
+                  ForEach([
+                    { va: 0, label: '上对齐' },
+                    { va: 1, label: '居中' },
+                    { va: 2, label: '下对齐' },
+                  ], (item: VerticalAlignItem) => {
+                    Column() {
+                      Text(item.label)
+                        .fontSize(12)
+                        .fontColor(this.textVerticalAlign === item.va
+                          ? $r('app.color.primary_color')
+                          : $r('app.color.text_primary'))
+                    }
+                    .layoutWeight(1)
+                    .height(32)
+                    .justifyContent(FlexAlign.Center)
+                    .backgroundColor(this.textVerticalAlign === item.va ? '#FFF0E8' : '#F5F5F5')
+                    .borderRadius(16)
+                    .border({
+                      width: this.textVerticalAlign === item.va ? 1.5 : 0,
+                      color: $r('app.color.primary_color')
+                    })
+                    .onClick(() => {
+                      this.textVerticalAlign = item.va;
+                      this.applyTextPropsToSelected();
+                    })
+                  }, (item: VerticalAlignItem) => item.label)
+                }
+                .layoutWeight(1)
+                .height(32)
+              }
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+            .padding(16)
+            .backgroundColor(Color.White)
+            .borderRadius(12)
+            .margin({ bottom: 12 })
+
+            // 间距设置
+            Column({ space: 12 }) {
+              Row() {
+                Text(this.textDirection === 'vertical' ? '字距' : '行距')
+                  .fontSize(13)
+                  .fontColor($r('app.color.text_secondary'))
+                  .width(40)
+                Slider({ value: this.textLineSpacing, min: 1, max: 3, step: 0.1 })
+                  .layoutWeight(1)
+                  .onChange((value: number) => {
+                    this.textLineSpacing = value;
+                    this.applyTextPropsToSelected();
+                  })
+                Text(`${this.textLineSpacing.toFixed(1)}`)
+                  .fontSize($r('app.float.font_size_xs'))
+                  .fontColor($r('app.color.text_hint'))
                   .width(32)
-                  .height(32)
-                  .backgroundColor(color)
+              }
+              .width('100%')
+
+              Row() {
+                Text(this.textDirection === 'vertical' ? '行距' : '字距')
+                  .fontSize(13)
+                  .fontColor($r('app.color.text_secondary'))
+                  .width(40)
+                Slider({ value: this.textLetterSpacing, min: 0, max: 20, step: 0.5 })
+                  .layoutWeight(1)
+                  .onChange((value: number) => {
+                    this.textLetterSpacing = value;
+                    this.applyTextPropsToSelected();
+                  })
+                Text(`${this.textLetterSpacing.toFixed(1)}`)
+                  .fontSize($r('app.float.font_size_xs'))
+                  .fontColor($r('app.color.text_hint'))
+                  .width(32)
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .padding(16)
+            .backgroundColor(Color.White)
+            .borderRadius(12)
+
+          } else if (this.activeSubTool === 3) {
+            // ===== 粗斜体 =====
+            // 粗体（标签居左，选项居中）
+            Row() {
+              Text('粗体')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Row({ space: 8 }) {
+                ForEach([
+                  { w: 100, label: '细体' },
+                  { w: 400, label: '常规' },
+                  { w: 700, label: '粗体' },
+                  { w: 900, label: '特粗' },
+                ], (item: FontWeightItem) => {
+                  Column() {
+                    Text(item.label)
+                      .fontSize(13)
+                      .fontWeight(item.w)
+                      .fontColor(this.textFontWeight === item.w
+                        ? $r('app.color.primary_color')
+                        : $r('app.color.text_primary'))
+                  }
+                  .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+                  .backgroundColor(this.textFontWeight === item.w ? '#FFF0E8' : '#F5F5F5')
                   .borderRadius(16)
-              }, (color: string) => color)
-          }
-        } else if (this.activeSubTool === 2) {
-          Text('文字排版')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
+                  .border({
+                    width: this.textFontWeight === item.w ? 1.5 : 0,
+                    color: $r('app.color.primary_color')
+                  })
+                  .onClick(() => {
+                    this.textFontWeight = item.w;
+                    this.applyTextPropsToSelected();
+                  })
+                }, (item: FontWeightItem) => item.w.toString())
+              }
+              .layoutWeight(1)
+              .justifyContent(FlexAlign.Center)
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Start)
+            .alignItems(VerticalAlign.Center)
             .margin({ bottom: 12 })
-          Row({ space: 16 }) {
-            Text('左对齐').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-            Text('居中').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-            Text('右对齐').padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-          }
-        } else if (this.activeSubTool === 3) {
-          Text('粗斜体设置')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
+
+            // 字体粗细微调
+            Row() {
+              Text('粗细')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.textFontWeight, min: 100, max: 900, step: 100 })
+                .layoutWeight(1)
+                .onChange((value: number) => {
+                  this.textFontWeight = value;
+                  this.applyTextPropsToSelected();
+                })
+              Text(`${Math.round(this.textFontWeight)}`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(32)
+            }
+            .width('100%')
             .margin({ bottom: 12 })
-          Row({ space: 16 }) {
-            Text('B').fontWeight(FontWeight.Bold).fontSize(20).padding(8).backgroundColor('#F5F5F5').borderRadius(6)
-            Text('I').fontStyle(FontStyle.Italic).fontSize(20).padding(8).backgroundColor('#F5F5F5').borderRadius(6)
+
+            // 斜体角度（斜体+角度 合并为一行）
+            Row() {
+              Text('斜体角度')
+                .fontSize(13)
+                .fontColor($r('app.color.text_secondary'))
+                .width(56)
+              Slider({ value: this.textItalicAngle, min: -30, max: 30, step: 1 })
+                .layoutWeight(1)
+                .onChange((value: number) => {
+                  this.textItalicAngle = value;
+                  this.applyTextPropsToSelected();
+                })
+              Text(`${Math.round(this.textItalicAngle)}°`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(36)
+            }
+            .width('100%')
+
           }
-        } else if (this.activeSubTool === 4) {
-          Text('文字弯曲效果')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
-            .margin({ bottom: 12 })
-          Text('弯曲效果开发中')
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_hint'))
         }
+        .width('100%')
+        .padding({ left: 16, right: 16, top: 8, bottom: 8 })
       }
       .width('100%')
-      .height(160)
-      .justifyContent(FlexAlign.Center)
-      .padding({ left: 16, right: 16 })
+      .constraintSize({ minHeight: 120, maxHeight: 300 })
+      .scrollBar(BarState.Off)
       .transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut }))
     } else if (this.activeToolTab === 3) {
       // 贴纸详细设置
@@ -1289,21 +1975,229 @@ struct PlogEditorPage {
                   this.selectedElementIndex = index;
                 })
             } else if (element.type === 'text') {
-              Text(element.content)
-                .fontSize(element.fontSize || 14)
-                .fontColor(element.color || '#333333')
-                .position({ x: element.x, y: element.y })
-                .width(element.width)
-                .zIndex(element.zIndex)
-                .border({
-                  width: this.selectedElementIndex === index ? 2 : 0,
-                  color: $r('app.color.primary_color')
-                })
-                .onClick(() => {
-                  this.selectedElementIndex = index;
-                })
+              Stack() {
+                if (this.editingTextIndex === index) {
+                  // 编辑模式
+                  Column() {
+                    TextInput({ text: this.editingTextValue })
+                      .fontSize(element.fontSize || 14)
+                      .fontColor(element.color || '#333333')
+                      .fontWeight(element.fontWeight ?? 400)
+                      .fontFamily(element.fontFamily || undefined)
+                      .opacity((element.textOpacity ?? 100) / 100)
+                      .backgroundColor(Color.Transparent)
+                      .width('100%')
+                      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+                      .textAlign(element.textAlign ?? TextAlign.Center)
+                      .onChange((value: string) => {
+                        this.editingTextValue = value;
+                      })
+                      .onBlur(() => {
+                        const old = this.elements[index];
+                        this.elements[index] = {
+                          type: old.type, x: old.x, y: old.y, width: old.width, height: old.height,
+                          rotation: old.rotation, content: this.editingTextValue, zIndex: old.zIndex,
+                          fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                          fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity,
+                          textAlign: old.textAlign, verticalAlign: old.verticalAlign,
+                          textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                          letterSpacing: old.letterSpacing, fontWeight: old.fontWeight,
+                          italicAngle: old.italicAngle, fontFamily: old.fontFamily,
+                          _version: (old._version ?? 0) + 1,
+                        };
+                        this.elements = [...this.elements];
+                        this.editingTextIndex = -1;
+                      })
+                  }
+                  .width('100%')
+                  .height('100%')
+                  .justifyContent(
+                    element.textDirection === 'vertical'
+                      ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
+                      : FlexAlign.Center
+                  )
+                } else {
+                  // 普通模式
+                  Column() {
+                    Text(element.textDirection === 'vertical' ? element.content.split('').join('\n') : element.content)
+                      .fontSize(element.fontSize || 14)
+                      .fontColor(element.color || '#333333')
+                      .fontWeight(element.fontWeight ?? 400)
+                      .fontFamily(element.fontFamily || undefined)
+                      .textAlign(element.textAlign ?? TextAlign.Center)
+                      .maxLines(50)
+                      .textOverflow({ overflow: TextOverflow.Clip })
+                      .letterSpacing(element.letterSpacing ?? 0)
+                      .lineHeight(element.textDirection === 'vertical'
+                        ? (element.fontSize ?? 14) + (element.letterSpacing ?? 0)
+                        : (element.fontSize ?? 14) * (element.lineSpacing ?? 1.2))
+                      .textShadow({
+                        radius: (element.shadowOpacity ?? 0) > 0 ? 2 : 0,
+                        color: (element.shadowOpacity ?? 0) > 0
+                          ? `rgba(0,0,0,${Math.max(0.15, (element.shadowOpacity ?? 0) / 100)})`
+                          : 'rgba(0,0,0,0)',
+                        offsetX: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0,
+                        offsetY: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0
+                      })
+                      .opacity((element.textOpacity ?? 100) / 100)
+                      .width('100%')
+                      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+                      .rotate({ angle: element.italicAngle ?? 0 })
+                  }
+                  .width('100%')
+                  .height('100%')
+                  .justifyContent(
+                    element.textDirection === 'vertical'
+                      ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
+                      : FlexAlign.Center
+                  )
+                  .gesture(
+                    GestureGroup(GestureMode.Exclusive,
+                      // 拖拽移动（移动超过5px触发）
+                      PanGesture({ fingers: 1, distance: 5 })
+                        .onActionStart(() => {
+                          this.dragStartX = this.elements[index].x;
+                          this.dragStartY = this.elements[index].y;
+                          this.selectedElementIndex = index;
+                          this.loadTextPropsFromSelected();
+                        })
+                        .onActionUpdate((event: GestureEvent) => {
+                          const old = this.elements[index];
+                          this.elements[index] = {
+                            type: old.type, x: this.dragStartX + event.offsetX, y: this.dragStartY + event.offsetY,
+                            width: old.width, height: old.height, rotation: old.rotation, content: old.content,
+                            zIndex: old.zIndex, fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                            fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                            verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                            letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                            fontFamily: old.fontFamily,
+                            _version: (old._version ?? 0) + 1,
+                          };
+                          this.elements = [...this.elements];
+                        })
+                        .onActionEnd(() => {
+                          this.elements = [...this.elements];
+                        }),
+                      // 双击编辑
+                      TapGesture({ count: 2 })
+                        .onAction(() => {
+                          this.editingTextValue = element.content;
+                          this.editingTextIndex = index;
+                        }),
+                      // 单击选中
+                      TapGesture({ count: 1 })
+                        .onAction(() => {
+                          this.selectedElementIndex = index;
+                          this.loadTextPropsFromSelected();
+                        })
+                    )
+                  )
+                }
+
+                // 选中时的边框（白色虚线，不拦截触摸事件）
+                if (this.selectedElementIndex === index) {
+                  Column()
+                    .width('100%')
+                    .height('100%')
+                    .border({
+                      width: 3,
+                      color: Color.White,
+                      style: BorderStyle.Dashed
+                    })
+                    .borderRadius(4)
+                    .hitTestBehavior(HitTestMode.None)
+                }
+
+                // 选中时的控制按钮（白底黑字）
+                if (this.selectedElementIndex === index && this.editingTextIndex !== index) {
+                  // 删除按钮（右上角）×
+                  Column() {
+                    Text('×')
+                      .fontSize(14)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: this.elements[index].width - 11, y: -11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .onClick(() => {
+                    this.deleteElement(index);
+                  })
+
+                  // 复制按钮（左下角）+1
+                  Column() {
+                    Text('+1')
+                      .fontSize(9)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: -11, y: this.elements[index].height - 11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .onClick(() => {
+                    this.duplicateElement(index);
+                  })
+
+                  // 缩放手柄（右下角）循环箭头
+                  Column() {
+                    Text('↻')
+                      .fontSize(14)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: this.elements[index].width - 11, y: this.elements[index].height - 11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .gesture(
+                    PanGesture()
+                      .onActionStart(() => {
+                        this.resizeStartWidth = this.elements[index].width;
+                        this.resizeStartHeight = this.elements[index].height;
+                      })
+                      .onActionUpdate((event: GestureEvent) => {
+                        const newWidth = Math.max(60, this.resizeStartWidth + event.offsetX);
+                        const newHeight = Math.max(30, this.resizeStartHeight + event.offsetY);
+                        const old = this.elements[index];
+                        this.elements[index] = {
+                          type: old.type, x: old.x, y: old.y, width: newWidth, height: newHeight,
+                          rotation: old.rotation, content: old.content, zIndex: old.zIndex,
+                          fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                          fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                          verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                          letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                          fontFamily: old.fontFamily,
+                          _version: (old._version ?? 0) + 1,
+                        };
+                        this.elements = [...this.elements];
+                      })
+                      .onActionEnd(() => {
+                        this.elements = [...this.elements];
+                      })
+                  )
+                }
+              }
+              .position({ x: this.elements[index].x, y: this.elements[index].y })
+              .width(this.elements[index].width)
+              .height(this.elements[index].height)
+              .zIndex(element.zIndex)
+              .rotate({ angle: element.rotation })
             }
-          }, (element: CanvasElement, index: number) => index.toString())
+          }, (element: CanvasElement, index: number) => `${index}_${element._version ?? 0}`)
         }
         .width('100%')
         .layoutWeight(1)
@@ -1341,7 +2235,7 @@ struct PlogEditorPage {
                 }
                 .width('100%')
                 .height(40)
-                .justifyContent(FlexAlign.Center)
+                .justifyContent(FlexAlign.SpaceEvenly)
                 .border({
                   width: { top: 0.5 },
                   color: $r('app.color.divider_color')

@@ -9,13 +9,16 @@ interface PlogGalleryPage_Params {
     pendingDeletePlogId?: number;
     dropdownX?: number;
     dropdownY?: number;
+    patternPlogIds?: number[];
     morePlogId?: number;
     moreBtnPositions?: Map<number, BtnPosition>;
     rootGlobalX?: number;
     rootGlobalY?: number;
+    settings?: RenderingContextSettings;
+    patternCanvasContext?: CanvasRenderingContext2D;
 }
 import PlogViewModel from "@normalized:N&&&entry/src/main/ets/viewmodel/PlogViewModel&";
-import type { PlogCanvas } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement } from '../model/PlogCanvas';
 import router from "@ohos:router";
 import promptAction from "@ohos:promptAction";
 class BtnPosition {
@@ -39,10 +42,13 @@ class PlogGalleryPage extends ViewPU {
         this.__pendingDeletePlogId = new ObservedPropertySimplePU(-1, this, "pendingDeletePlogId");
         this.__dropdownX = new ObservedPropertySimplePU(0, this, "dropdownX");
         this.__dropdownY = new ObservedPropertySimplePU(0, this, "dropdownY");
+        this.__patternPlogIds = new ObservedPropertyObjectPU([], this, "patternPlogIds");
         this.morePlogId = -1;
         this.moreBtnPositions = new Map();
         this.rootGlobalX = 0;
         this.rootGlobalY = 0;
+        this.settings = new RenderingContextSettings(true);
+        this.patternCanvasContext = new CanvasRenderingContext2D(this.settings);
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
@@ -68,6 +74,9 @@ class PlogGalleryPage extends ViewPU {
         if (params.dropdownY !== undefined) {
             this.dropdownY = params.dropdownY;
         }
+        if (params.patternPlogIds !== undefined) {
+            this.patternPlogIds = params.patternPlogIds;
+        }
         if (params.morePlogId !== undefined) {
             this.morePlogId = params.morePlogId;
         }
@@ -80,6 +89,12 @@ class PlogGalleryPage extends ViewPU {
         if (params.rootGlobalY !== undefined) {
             this.rootGlobalY = params.rootGlobalY;
         }
+        if (params.settings !== undefined) {
+            this.settings = params.settings;
+        }
+        if (params.patternCanvasContext !== undefined) {
+            this.patternCanvasContext = params.patternCanvasContext;
+        }
     }
     updateStateVars(params: PlogGalleryPage_Params) {
     }
@@ -91,6 +106,7 @@ class PlogGalleryPage extends ViewPU {
         this.__pendingDeletePlogId.purgeDependencyOnElmtId(rmElmtId);
         this.__dropdownX.purgeDependencyOnElmtId(rmElmtId);
         this.__dropdownY.purgeDependencyOnElmtId(rmElmtId);
+        this.__patternPlogIds.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
         this.__plogs.aboutToBeDeleted();
@@ -100,6 +116,7 @@ class PlogGalleryPage extends ViewPU {
         this.__pendingDeletePlogId.aboutToBeDeleted();
         this.__dropdownX.aboutToBeDeleted();
         this.__dropdownY.aboutToBeDeleted();
+        this.__patternPlogIds.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
     }
@@ -152,10 +169,19 @@ class PlogGalleryPage extends ViewPU {
     set dropdownY(newValue: number) {
         this.__dropdownY.set(newValue);
     }
+    private __patternPlogIds: ObservedPropertyObjectPU<number[]>; // 需要绘制花纹的手账ID列表
+    get patternPlogIds() {
+        return this.__patternPlogIds.get();
+    }
+    set patternPlogIds(newValue: number[]) {
+        this.__patternPlogIds.set(newValue);
+    }
     private morePlogId: number;
     private moreBtnPositions: Map<number, BtnPosition>;
     private rootGlobalX: number;
     private rootGlobalY: number;
+    private settings: RenderingContextSettings;
+    private patternCanvasContext: CanvasRenderingContext2D;
     aboutToAppear(): void {
         this.loadPlogs();
     }
@@ -177,6 +203,12 @@ class PlogGalleryPage extends ViewPU {
     navigateToEditor(plogId: number): void {
         router.pushUrl({
             url: 'pages/PlogEditorPage',
+            params: { plogId: plogId }
+        });
+    }
+    navigateToPreview(plogId: number): void {
+        router.pushUrl({
+            url: 'pages/PlogPreviewPage',
             params: { plogId: plogId }
         });
     }
@@ -215,6 +247,98 @@ class PlogGalleryPage extends ViewPU {
         }
         catch (error) {
             console.error('删除手账失败:', error);
+        }
+    }
+    /** 渐变角度 → GradientDirection 枚举值 */
+    gradientAngleToGradientDirection(angle: number): number {
+        const a = Math.round(angle / 45) * 45;
+        if (a === 0 || a === 360)
+            return 0;
+        if (a === 45)
+            return 4;
+        if (a === 90)
+            return 3;
+        if (a === 135)
+            return 6;
+        if (a === 180)
+            return 1;
+        if (a === 225)
+            return 7;
+        if (a === 270)
+            return 2;
+        if (a === 315)
+            return 5;
+        return 0;
+    }
+    /** 绘制花纹（卡片迷你预览用） */
+    drawPatternBg(plog: PlogCanvas): void {
+        const ctx = this.patternCanvasContext;
+        const w: number = ctx.width;
+        const h: number = ctx.height;
+        if (w === 0 || h === 0)
+            return;
+        const t = plog.patternThickness;
+        const s = plog.patternSpacing;
+        ctx.clearRect(0, 0, w, h);
+        const pColor = plog.patternColor || '#E0E0E0';
+        ctx.strokeStyle = pColor;
+        ctx.lineWidth = t;
+        ctx.fillStyle = pColor;
+        if (plog.patternType === 'horizontal') {
+            for (let y = 0; y < h; y += s) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+        }
+        else if (plog.patternType === 'vertical') {
+            for (let x = 0; x < w; x += s) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+        }
+        else if (plog.patternType === 'grid') {
+            for (let x = 0; x < w; x += s) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = 0; y < h; y += s) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+        }
+        else if (plog.patternType === 'dots') {
+            const r = t * 2;
+            for (let y = r; y < h; y += s) {
+                for (let x = r; x < w; x += s) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        else if (plog.patternType === 'waves') {
+            const amp = t * 3;
+            for (let y = amp; y < h; y += s) {
+                ctx.beginPath();
+                for (let x = 0; x <= w; x += 2) {
+                    const wy = y + Math.sin((x / s) * Math.PI * 2) * amp;
+                    if (x === 0) {
+                        ctx.moveTo(x, wy);
+                    }
+                    else {
+                        ctx.lineTo(x, wy);
+                    }
+                }
+                ctx.stroke();
+            }
         }
     }
     initialRender() {
@@ -484,7 +608,7 @@ class PlogGalleryPage extends ViewPU {
             Column.height(180);
             Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Column.borderRadius({ "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.onClick(() => this.navigateToEditor(plog.id));
+            Column.onClick(() => this.navigateToPreview(plog.id));
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 日期标题栏 + 更多按钮
@@ -531,23 +655,15 @@ class PlogGalleryPage extends ViewPU {
             Stack.width('100%');
             // 手账内容预览
             Stack.layoutWeight(1);
+            // 手账内容预览
+            Stack.clip(true);
         }, Stack);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
             if (plog.thumbnail) {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Image.create(plog.thumbnail);
-                        Image.width('100%');
-                        Image.height('100%');
-                        Image.objectFit(ImageFit.Cover);
-                    }, Image);
-                });
-            }
-            else if (plog.backgroundImage) {
-                this.ifElseBranchUpdateFunction(1, () => {
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Image.create(plog.backgroundImage);
+                        Image.create(plog.thumbnail.startsWith('/') ? 'file://' + plog.thumbnail : plog.thumbnail);
                         Image.width('100%');
                         Image.height('100%');
                         Image.objectFit(ImageFit.Cover);
@@ -555,14 +671,133 @@ class PlogGalleryPage extends ViewPU {
                 });
             }
             else {
-                this.ifElseBranchUpdateFunction(2, () => {
+                this.ifElseBranchUpdateFunction(1, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Column.create();
-                        Column.width('100%');
-                        Column.height('100%');
-                        Column.backgroundColor('#FFF9F0');
-                    }, Column);
-                    Column.pop();
+                        If.create();
+                        // 无缩略图时，直接渲染迷你画布预览
+                        // 背景层
+                        if (plog.bgType === 'custom' && plog.customBgUri) {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Image.create(plog.customBgUri);
+                                    Image.width('100%');
+                                    Image.height('100%');
+                                    Image.objectFit(ImageFit.Cover);
+                                }, Image);
+                            });
+                        }
+                        else if (plog.bgType === 'gradient' && plog.gradientColors.length >= 2) {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width('100%');
+                                    Column.height('100%');
+                                    Column.linearGradient({
+                                        direction: this.gradientAngleToGradientDirection(plog.gradientAngle),
+                                        colors: plog.gradientColors.map((c: string, i: number) => [c, i / (plog.gradientColors.length - 1)] as [
+                                            ResourceColor,
+                                            number
+                                        ])
+                                    });
+                                }, Column);
+                                Column.pop();
+                            });
+                        }
+                        else if (plog.bgType === 'solid') {
+                            this.ifElseBranchUpdateFunction(2, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width('100%');
+                                    Column.height('100%');
+                                    Column.backgroundColor(plog.bgColor || '#FFFFFF');
+                                }, Column);
+                                Column.pop();
+                            });
+                        }
+                        else {
+                            this.ifElseBranchUpdateFunction(3, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width('100%');
+                                    Column.height('100%');
+                                    Column.backgroundColor(Color.White);
+                                }, Column);
+                                Column.pop();
+                            });
+                        }
+                    }, If);
+                    If.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        If.create();
+                        // 花纹叠加
+                        if (plog.hasPattern && plog.patternType !== 'none') {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Canvas.create(this.patternCanvasContext);
+                                    Canvas.width('100%');
+                                    Canvas.height('100%');
+                                    Canvas.onReady(() => {
+                                        this.drawPatternBg(plog);
+                                    });
+                                }, Canvas);
+                                Canvas.pop();
+                            });
+                        }
+                        // 画布元素预览
+                        else {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                            });
+                        }
+                    }, If);
+                    If.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 画布元素预览
+                        ForEach.create();
+                        const forEachItemGenFunction = _item => {
+                            const element = _item;
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                if (element.type === 'image' || element.type === 'sticker') {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Image.create(element.content);
+                                            Image.width(element.width);
+                                            Image.height(element.height);
+                                            Image.position({ x: element.x, y: element.y });
+                                            Image.rotate({ angle: element.rotation });
+                                            Image.zIndex(element.zIndex);
+                                        }, Image);
+                                    });
+                                }
+                                else if (element.type === 'text') {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(element.content);
+                                            Text.fontSize(element.fontSize || 14);
+                                            Text.fontColor(element.color || '#333333');
+                                            Text.fontWeight(element.fontWeight ?? 400);
+                                            Text.textAlign(element.textAlign ?? TextAlign.Center);
+                                            Text.maxLines(3);
+                                            Text.textOverflow({ overflow: TextOverflow.Ellipsis });
+                                            Text.position({ x: element.x, y: element.y });
+                                            Text.width(element.width);
+                                            Text.rotate({ angle: element.rotation });
+                                            Text.zIndex(element.zIndex);
+                                        }, Text);
+                                        Text.pop();
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(2, () => {
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                        };
+                        this.forEachUpdateFunction(elmtId, plog.elements, forEachItemGenFunction, (element: CanvasElement, index: number) => `${index}_${element.type}`, false, true);
+                    }, ForEach);
+                    // 画布元素预览
+                    ForEach.pop();
                 });
             }
         }, If);
@@ -627,9 +862,8 @@ class PlogGalleryPage extends ViewPU {
             ViewStackProcessor.visualState();
             // 编辑选项
             Row.onClick(() => {
-                this.hideMoreMenu();
                 const plogId = this.morePlogId;
-                this.morePlogId = -1;
+                this.hideMoreMenu();
                 this.navigateToEditor(plogId);
             });
         }, Row);

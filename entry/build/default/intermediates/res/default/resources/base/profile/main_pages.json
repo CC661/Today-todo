@@ -5,6 +5,7 @@
     "pages/CategoryPage",
     "pages/PlogEditorPage",
     "pages/PlogGalleryPage",
+    "pages/PlogPreviewPage",
     "pages/SettingPage"
   ]
 }

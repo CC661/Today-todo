@@ -739,7 +739,8 @@
       "children": [],
       "parent": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.UIContext.d.ts",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.ArkUI.d.ts"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.ArkUI.d.ts",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -796,7 +797,8 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.ArkUI.d.ts",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\CategoryPage.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets",
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogPreviewPage.ets"
       ],
       "error": false
     },
@@ -897,7 +899,8 @@
       "parent": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.UIContext.d.ts",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets",
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\PreferencesUtil.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\PreferencesUtil.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -1696,14 +1699,15 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts": {
-      "mtimeMs": 1780634616243.2568,
+      "mtimeMs": 1780667374826.8645,
       "children": [],
       "parent": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets",
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogPreviewPage.ets"
       ],
       "error": false
     },
@@ -1796,7 +1800,8 @@
       "parent": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets",
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogPreviewPage.ets"
       ],
       "error": false
     },
@@ -1994,7 +1999,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets": {
-      "mtimeMs": 1780639855621.2354,
+      "mtimeMs": 1780669743537.0356,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\DiaryViewModel.ets",
@@ -2007,8 +2012,11 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.curves.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.componentSnapshot.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.promptAction.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.font.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.photoAccessHelper.d.ts",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.multimedia.image.d.ts"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.multimedia.image.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.fs.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.app.ability.common.d.ts"
       ],
       "parent": [],
       "error": true,
@@ -2018,7 +2026,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets": {
-      "mtimeMs": 1780586998952.328,
+      "mtimeMs": 1780669970482.9084,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts",
@@ -2605,7 +2613,9 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.UIContext.d.ts"
       ],
       "parent": [
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets"
       ],
       "error": false
     },
@@ -4021,7 +4031,8 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.util.stream.d.ts"
       ],
       "parent": [
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.CoreFileKit.d.ts"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.CoreFileKit.d.ts",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -4115,6 +4126,20 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.util.stream.d.ts"
       ],
       "error": false
+    },
+    "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogPreviewPage.ets": {
+      "mtimeMs": 1780668732377.0918,
+      "children": [
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.router.d.ts"
+      ],
+      "parent": [],
+      "error": true,
+      "errorCodes": [
+        28007,
+        28040
+      ]
     }
   }
 }

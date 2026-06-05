@@ -1,5 +1,5 @@
 import PlogViewModel from '../viewmodel/PlogViewModel';
-import type { PlogCanvas } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement } from '../model/PlogCanvas';
 import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
 
@@ -25,10 +25,13 @@ struct PlogGalleryPage {
   @State pendingDeletePlogId: number = -1;
   @State dropdownX: number = 0;
   @State dropdownY: number = 0;
+  @State patternPlogIds: number[] = []; // 需要绘制花纹的手账ID列表
   private morePlogId: number = -1;
   private moreBtnPositions: Map<number, BtnPosition> = new Map();
   private rootGlobalX: number = 0;
   private rootGlobalY: number = 0;
+  private settings: RenderingContextSettings = new RenderingContextSettings(true);
+  private patternCanvasContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
 
   aboutToAppear(): void {
     this.loadPlogs();
@@ -52,6 +55,13 @@ struct PlogGalleryPage {
   navigateToEditor(plogId: number): void {
     router.pushUrl({
       url: 'pages/PlogEditorPage',
+      params: { plogId: plogId }
+    });
+  }
+
+  navigateToPreview(plogId: number): void {
+    router.pushUrl({
+      url: 'pages/PlogPreviewPage',
       params: { plogId: plogId }
     });
   }
@@ -92,6 +102,62 @@ struct PlogGalleryPage {
       await this.loadPlogs();
     } catch (error) {
       console.error('删除手账失败:', error);
+    }
+  }
+
+  /** 渐变角度 → GradientDirection 枚举值 */
+  gradientAngleToGradientDirection(angle: number): number {
+    const a = Math.round(angle / 45) * 45;
+    if (a === 0 || a === 360) return 0;
+    if (a === 45) return 4;
+    if (a === 90) return 3;
+    if (a === 135) return 6;
+    if (a === 180) return 1;
+    if (a === 225) return 7;
+    if (a === 270) return 2;
+    if (a === 315) return 5;
+    return 0;
+  }
+
+  /** 绘制花纹（卡片迷你预览用） */
+  drawPatternBg(plog: PlogCanvas): void {
+    const ctx = this.patternCanvasContext;
+    const w: number = ctx.width;
+    const h: number = ctx.height;
+    if (w === 0 || h === 0) return;
+    const t = plog.patternThickness;
+    const s = plog.patternSpacing;
+    ctx.clearRect(0, 0, w, h);
+    const pColor = plog.patternColor || '#E0E0E0';
+    ctx.strokeStyle = pColor;
+    ctx.lineWidth = t;
+    ctx.fillStyle = pColor;
+    if (plog.patternType === 'horizontal') {
+      for (let y = 0; y < h; y += s) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+    } else if (plog.patternType === 'vertical') {
+      for (let x = 0; x < w; x += s) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+    } else if (plog.patternType === 'grid') {
+      for (let x = 0; x < w; x += s) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y < h; y += s) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    } else if (plog.patternType === 'dots') {
+      const r = t * 2;
+      for (let y = r; y < h; y += s) {
+        for (let x = r; x < w; x += s) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+      }
+    } else if (plog.patternType === 'waves') {
+      const amp = t * 3;
+      for (let y = amp; y < h; y += s) {
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 2) {
+          const wy = y + Math.sin((x / s) * Math.PI * 2) * amp;
+          if (x === 0) { ctx.moveTo(x, wy); } else { ctx.lineTo(x, wy); }
+        }
+        ctx.stroke();
+      }
     }
   }
 
@@ -287,30 +353,83 @@ struct PlogGalleryPage {
       // 手账内容预览
       Stack() {
         if (plog.thumbnail) {
-          Image(plog.thumbnail)
-            .width('100%')
-            .height('100%')
-            .objectFit(ImageFit.Cover)
-        } else if (plog.backgroundImage) {
-          Image(plog.backgroundImage)
+          Image(plog.thumbnail.startsWith('/') ? 'file://' + plog.thumbnail : plog.thumbnail)
             .width('100%')
             .height('100%')
             .objectFit(ImageFit.Cover)
         } else {
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor('#FFF9F0')
+          // 无缩略图时，直接渲染迷你画布预览
+          // 背景层
+          if (plog.bgType === 'custom' && plog.customBgUri) {
+            Image(plog.customBgUri)
+              .width('100%')
+              .height('100%')
+              .objectFit(ImageFit.Cover)
+          } else if (plog.bgType === 'gradient' && plog.gradientColors.length >= 2) {
+            Column()
+              .width('100%')
+              .height('100%')
+              .linearGradient({
+                direction: this.gradientAngleToGradientDirection(plog.gradientAngle),
+                colors: plog.gradientColors.map((c: string, i: number) =>
+                  [c, i / (plog.gradientColors.length - 1)] as [ResourceColor, number])
+              })
+          } else if (plog.bgType === 'solid') {
+            Column()
+              .width('100%')
+              .height('100%')
+              .backgroundColor(plog.bgColor || '#FFFFFF')
+          } else {
+            Column()
+              .width('100%')
+              .height('100%')
+              .backgroundColor(Color.White)
+          }
+
+          // 花纹叠加
+          if (plog.hasPattern && plog.patternType !== 'none') {
+            Canvas(this.patternCanvasContext)
+              .width('100%')
+              .height('100%')
+              .onReady(() => {
+                this.drawPatternBg(plog);
+              })
+          }
+
+          // 画布元素预览
+          ForEach(plog.elements, (element: CanvasElement) => {
+            if (element.type === 'image' || element.type === 'sticker') {
+              Image(element.content)
+                .width(element.width)
+                .height(element.height)
+                .position({ x: element.x, y: element.y })
+                .rotate({ angle: element.rotation })
+                .zIndex(element.zIndex)
+            } else if (element.type === 'text') {
+              Text(element.content)
+                .fontSize(element.fontSize || 14)
+                .fontColor(element.color || '#333333')
+                .fontWeight(element.fontWeight ?? 400)
+                .textAlign(element.textAlign ?? TextAlign.Center)
+                .maxLines(3)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .position({ x: element.x, y: element.y })
+                .width(element.width)
+                .rotate({ angle: element.rotation })
+                .zIndex(element.zIndex)
+            }
+          }, (element: CanvasElement, index: number) => `${index}_${element.type}`)
         }
       }
       .width('100%')
       .layoutWeight(1)
+      .clip(true)
     }
     .width('100%')
     .height(180)
     .backgroundColor($r('app.color.card_background'))
     .borderRadius($r('app.float.border_radius_lg'))
-    .onClick(() => this.navigateToEditor(plog.id))
+    .onClick(() => this.navigateToPreview(plog.id))
   }
 
   // 更多下拉菜单（全屏遮罩 + 绝对定位）
@@ -348,9 +467,8 @@ struct PlogGalleryPage {
         normal: { .backgroundColor(Color.Transparent) }
       })
       .onClick(() => {
-        this.hideMoreMenu();
         const plogId = this.morePlogId;
-        this.morePlogId = -1;
+        this.hideMoreMenu();
         this.navigateToEditor(plogId);
       })
 

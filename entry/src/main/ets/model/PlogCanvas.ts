@@ -3,6 +3,13 @@
  */
 
 // 画布元素类型
+// 文字风格
+export type TextStyle = 'normal' | 'handwrite' | 'serif' | 'mono' | 'art' | 'kuaile' | 'brush' | 'pacifico' | 'xiaowei' | 'caoshu' | 'zhimangxing' | 'longcang' | 'dancing' | 'lobster' | 'greatvibes' | 'caveat';
+// 文字排列方向
+export type TextDirection = 'horizontal' | 'vertical';
+// 文字弯曲类型
+export type TextCurveType = 'none' | 'up' | 'down';
+
 export interface CanvasElement {
   type: 'image' | 'text' | 'sticker';
   x: number;
@@ -12,8 +19,23 @@ export interface CanvasElement {
   rotation: number;
   content: string;            // 图片路径或文本内容
   zIndex: number;
-  fontSize?: number;          // 文本字体大小
-  color?: string;             // 文本颜色
+  // ---- 文字属性 ----
+  fontSize?: number;          // 字体大小
+  color?: string;             // 文字颜色
+  textOpacity?: number;       // 文字透明度 0-100
+  fontStyle?: TextStyle;     // 文字风格
+  fontFamily?: string;        // 字体族名称
+  shadowOpacity?: number;    // 阴影透明度 0-100
+  textAlign?: TextAlign;      // 水平对齐
+  verticalAlign?: VerticalAlign; // 垂直对齐 (0=Top 1=Center 2=Bottom)
+  textDirection?: TextDirection; // 排列方向
+  lineSpacing?: number;      // 行距倍数 1.0-3.0
+  letterSpacing?: number;    // 字间距 0-20
+  fontWeight?: number;       // 字体粗细 100-900
+  italicAngle?: number;      // 斜体角度 -30~30
+  curveType?: TextCurveType;  // 弯曲类型
+  curveAmount?: number;       // 弯曲弧度 0-100
+  _version?: number;          // 内部版本号，用于触发 UI 刷新
 }
 
 // 背景类型

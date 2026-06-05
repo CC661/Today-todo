@@ -5,6 +5,8 @@ interface PlogEditorPage_Params {
     plog?: PlogCanvas | null;
     elements?: CanvasElement[];
     selectedElementIndex?: number;
+    editingTextIndex?: number;
+    editingTextValue?: string;
     showMaterialPanel?: boolean;
     todayDiaryPosts?: DiaryPost[];
     showDiaryPanel?: boolean;
@@ -37,10 +39,30 @@ interface PlogEditorPage_Params {
     diaryIdsFromParams?: number[];
     textSubTools?: string[];
     bgSubTools?: string[];
+    resizeStartWidth?: number;
+    resizeStartHeight?: number;
+    dragStartX?: number;
+    dragStartY?: number;
+    textFontStyle?: TextStyle;
+    textFontSize?: number;
+    textShadowOpacity?: number;
+    textColor?: string;
+    textOpacity?: number;
+    textColorHue?: number;
+    textColorSaturation?: number;
+    textAlign?: TextAlign;
+    textVerticalAlign?: number;
+    textDirection?: TextDirection;
+    textLineSpacing?: number;
+    textLetterSpacing?: number;
+    textFontWeight?: number;
+    textItalicAngle?: number;
+    newTextContent?: string;
+    fontStyleMap?: Record<string, string>;
 }
 import PlogViewModel from "@normalized:N&&&entry/src/main/ets/viewmodel/PlogViewModel&";
 import DiaryViewModel from "@normalized:N&&&entry/src/main/ets/viewmodel/DiaryViewModel&";
-import type { PlogCanvas, CanvasElement, BgType, PatternType } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection } from '../model/PlogCanvas';
 import type { DiaryPost } from '../model/DiaryPost';
 import type { TodoItem } from '../model/TodoItem';
 import type { PlogInsertParams } from '../common/database/RDBStoreUtil';
@@ -49,10 +71,33 @@ import router from "@ohos:router";
 import curves from "@native:ohos.curves";
 import componentSnapshot from "@ohos:arkui.componentSnapshot";
 import promptAction from "@ohos:promptAction";
+import font from "@ohos:font";
 import photoAccessHelper from "@ohos:file.photoAccessHelper";
-import type image from "@ohos:multimedia.image";
+import image from "@ohos:multimedia.image";
+import fs from "@ohos:file.fs";
+import type common from "@ohos:app.ability.common";
 class PatternItem {
     type: PatternType = 'horizontal';
+    label: string = '';
+}
+class FontStyleItem {
+    style: TextStyle = 'normal';
+    label: string = '';
+}
+class TextAlignItem {
+    align: TextAlign = TextAlign.Center;
+    label: string = '';
+}
+class VerticalAlignItem {
+    va: number = 1;
+    label: string = '';
+}
+class FontWeightItem {
+    w: number = 400;
+    label: string = '';
+}
+class DirectionItem {
+    dir: TextDirection = 'horizontal';
     label: string = '';
 }
 class PlogEditorPage extends ViewPU {
@@ -64,6 +109,8 @@ class PlogEditorPage extends ViewPU {
         this.__plog = new ObservedPropertyObjectPU(null, this, "plog");
         this.__elements = new ObservedPropertyObjectPU([], this, "elements");
         this.__selectedElementIndex = new ObservedPropertySimplePU(-1, this, "selectedElementIndex");
+        this.__editingTextIndex = new ObservedPropertySimplePU(-1, this, "editingTextIndex");
+        this.__editingTextValue = new ObservedPropertySimplePU('', this, "editingTextValue");
         this.__showMaterialPanel = new ObservedPropertySimplePU(false, this, "showMaterialPanel");
         this.__todayDiaryPosts = new ObservedPropertyObjectPU([], this, "todayDiaryPosts");
         this.__showDiaryPanel = new ObservedPropertySimplePU(false, this, "showDiaryPanel");
@@ -94,8 +141,45 @@ class PlogEditorPage extends ViewPU {
         this.patternCanvasContext = new CanvasRenderingContext2D(this.settings);
         this.plogIdFromParams = 0;
         this.diaryIdsFromParams = [];
-        this.textSubTools = ['样式', '颜色', '排版', '粗斜体', '弯曲'];
+        this.textSubTools = ['样式', '颜色', '排版', '粗斜体'];
         this.bgSubTools = ['纯色', '渐变', '花纹', '自定义'];
+        this.resizeStartWidth = 0;
+        this.resizeStartHeight = 0;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.__textFontStyle = new ObservedPropertySimplePU('normal', this, "textFontStyle");
+        this.__textFontSize = new ObservedPropertySimplePU(16, this, "textFontSize");
+        this.__textShadowOpacity = new ObservedPropertySimplePU(0, this, "textShadowOpacity");
+        this.__textColor = new ObservedPropertySimplePU('#333333', this, "textColor");
+        this.__textOpacity = new ObservedPropertySimplePU(100, this, "textOpacity");
+        this.__textColorHue = new ObservedPropertySimplePU(0, this, "textColorHue");
+        this.__textColorSaturation = new ObservedPropertySimplePU(0, this, "textColorSaturation");
+        this.__textAlign = new ObservedPropertySimplePU(TextAlign.Center, this, "textAlign");
+        this.__textVerticalAlign = new ObservedPropertySimplePU(1, this, "textVerticalAlign");
+        this.__textDirection = new ObservedPropertySimplePU('horizontal', this, "textDirection");
+        this.__textLineSpacing = new ObservedPropertySimplePU(1.2, this, "textLineSpacing");
+        this.__textLetterSpacing = new ObservedPropertySimplePU(0, this, "textLetterSpacing");
+        this.__textFontWeight = new ObservedPropertySimplePU(400, this, "textFontWeight");
+        this.__textItalicAngle = new ObservedPropertySimplePU(0, this, "textItalicAngle");
+        this.__newTextContent = new ObservedPropertySimplePU('', this, "newTextContent");
+        this.fontStyleMap = {
+            'normal': '',
+            'handwrite': 'LXGWWenKaiLite',
+            'serif': 'serif',
+            'mono': 'monospace',
+            'art': 'LXGWWenKai',
+            'kuaile': 'ZCOOLKuaiLe',
+            'brush': 'MaShanZheng',
+            'xiaowei': 'ZCOOLXiaoWei',
+            'caoshu': 'LiuJianMaoCao',
+            'zhimangxing': 'ZhiMangXing',
+            'longcang': 'LongCang',
+            'pacifico': 'Pacifico',
+            'dancing': 'DancingScript',
+            'lobster': 'Lobster',
+            'greatvibes': 'GreatVibes',
+            'caveat': 'Caveat',
+        };
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
@@ -108,6 +192,12 @@ class PlogEditorPage extends ViewPU {
         }
         if (params.selectedElementIndex !== undefined) {
             this.selectedElementIndex = params.selectedElementIndex;
+        }
+        if (params.editingTextIndex !== undefined) {
+            this.editingTextIndex = params.editingTextIndex;
+        }
+        if (params.editingTextValue !== undefined) {
+            this.editingTextValue = params.editingTextValue;
         }
         if (params.showMaterialPanel !== undefined) {
             this.showMaterialPanel = params.showMaterialPanel;
@@ -205,6 +295,66 @@ class PlogEditorPage extends ViewPU {
         if (params.bgSubTools !== undefined) {
             this.bgSubTools = params.bgSubTools;
         }
+        if (params.resizeStartWidth !== undefined) {
+            this.resizeStartWidth = params.resizeStartWidth;
+        }
+        if (params.resizeStartHeight !== undefined) {
+            this.resizeStartHeight = params.resizeStartHeight;
+        }
+        if (params.dragStartX !== undefined) {
+            this.dragStartX = params.dragStartX;
+        }
+        if (params.dragStartY !== undefined) {
+            this.dragStartY = params.dragStartY;
+        }
+        if (params.textFontStyle !== undefined) {
+            this.textFontStyle = params.textFontStyle;
+        }
+        if (params.textFontSize !== undefined) {
+            this.textFontSize = params.textFontSize;
+        }
+        if (params.textShadowOpacity !== undefined) {
+            this.textShadowOpacity = params.textShadowOpacity;
+        }
+        if (params.textColor !== undefined) {
+            this.textColor = params.textColor;
+        }
+        if (params.textOpacity !== undefined) {
+            this.textOpacity = params.textOpacity;
+        }
+        if (params.textColorHue !== undefined) {
+            this.textColorHue = params.textColorHue;
+        }
+        if (params.textColorSaturation !== undefined) {
+            this.textColorSaturation = params.textColorSaturation;
+        }
+        if (params.textAlign !== undefined) {
+            this.textAlign = params.textAlign;
+        }
+        if (params.textVerticalAlign !== undefined) {
+            this.textVerticalAlign = params.textVerticalAlign;
+        }
+        if (params.textDirection !== undefined) {
+            this.textDirection = params.textDirection;
+        }
+        if (params.textLineSpacing !== undefined) {
+            this.textLineSpacing = params.textLineSpacing;
+        }
+        if (params.textLetterSpacing !== undefined) {
+            this.textLetterSpacing = params.textLetterSpacing;
+        }
+        if (params.textFontWeight !== undefined) {
+            this.textFontWeight = params.textFontWeight;
+        }
+        if (params.textItalicAngle !== undefined) {
+            this.textItalicAngle = params.textItalicAngle;
+        }
+        if (params.newTextContent !== undefined) {
+            this.newTextContent = params.newTextContent;
+        }
+        if (params.fontStyleMap !== undefined) {
+            this.fontStyleMap = params.fontStyleMap;
+        }
     }
     updateStateVars(params: PlogEditorPage_Params) {
     }
@@ -212,6 +362,8 @@ class PlogEditorPage extends ViewPU {
         this.__plog.purgeDependencyOnElmtId(rmElmtId);
         this.__elements.purgeDependencyOnElmtId(rmElmtId);
         this.__selectedElementIndex.purgeDependencyOnElmtId(rmElmtId);
+        this.__editingTextIndex.purgeDependencyOnElmtId(rmElmtId);
+        this.__editingTextValue.purgeDependencyOnElmtId(rmElmtId);
         this.__showMaterialPanel.purgeDependencyOnElmtId(rmElmtId);
         this.__todayDiaryPosts.purgeDependencyOnElmtId(rmElmtId);
         this.__showDiaryPanel.purgeDependencyOnElmtId(rmElmtId);
@@ -235,11 +387,28 @@ class PlogEditorPage extends ViewPU {
         this.__patternSpacing.purgeDependencyOnElmtId(rmElmtId);
         this.__customBgUri.purgeDependencyOnElmtId(rmElmtId);
         this.__showEyedropper.purgeDependencyOnElmtId(rmElmtId);
+        this.__textFontStyle.purgeDependencyOnElmtId(rmElmtId);
+        this.__textFontSize.purgeDependencyOnElmtId(rmElmtId);
+        this.__textShadowOpacity.purgeDependencyOnElmtId(rmElmtId);
+        this.__textColor.purgeDependencyOnElmtId(rmElmtId);
+        this.__textOpacity.purgeDependencyOnElmtId(rmElmtId);
+        this.__textColorHue.purgeDependencyOnElmtId(rmElmtId);
+        this.__textColorSaturation.purgeDependencyOnElmtId(rmElmtId);
+        this.__textAlign.purgeDependencyOnElmtId(rmElmtId);
+        this.__textVerticalAlign.purgeDependencyOnElmtId(rmElmtId);
+        this.__textDirection.purgeDependencyOnElmtId(rmElmtId);
+        this.__textLineSpacing.purgeDependencyOnElmtId(rmElmtId);
+        this.__textLetterSpacing.purgeDependencyOnElmtId(rmElmtId);
+        this.__textFontWeight.purgeDependencyOnElmtId(rmElmtId);
+        this.__textItalicAngle.purgeDependencyOnElmtId(rmElmtId);
+        this.__newTextContent.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
         this.__plog.aboutToBeDeleted();
         this.__elements.aboutToBeDeleted();
         this.__selectedElementIndex.aboutToBeDeleted();
+        this.__editingTextIndex.aboutToBeDeleted();
+        this.__editingTextValue.aboutToBeDeleted();
         this.__showMaterialPanel.aboutToBeDeleted();
         this.__todayDiaryPosts.aboutToBeDeleted();
         this.__showDiaryPanel.aboutToBeDeleted();
@@ -263,6 +432,21 @@ class PlogEditorPage extends ViewPU {
         this.__patternSpacing.aboutToBeDeleted();
         this.__customBgUri.aboutToBeDeleted();
         this.__showEyedropper.aboutToBeDeleted();
+        this.__textFontStyle.aboutToBeDeleted();
+        this.__textFontSize.aboutToBeDeleted();
+        this.__textShadowOpacity.aboutToBeDeleted();
+        this.__textColor.aboutToBeDeleted();
+        this.__textOpacity.aboutToBeDeleted();
+        this.__textColorHue.aboutToBeDeleted();
+        this.__textColorSaturation.aboutToBeDeleted();
+        this.__textAlign.aboutToBeDeleted();
+        this.__textVerticalAlign.aboutToBeDeleted();
+        this.__textDirection.aboutToBeDeleted();
+        this.__textLineSpacing.aboutToBeDeleted();
+        this.__textLetterSpacing.aboutToBeDeleted();
+        this.__textFontWeight.aboutToBeDeleted();
+        this.__textItalicAngle.aboutToBeDeleted();
+        this.__newTextContent.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
     }
@@ -286,6 +470,20 @@ class PlogEditorPage extends ViewPU {
     }
     set selectedElementIndex(newValue: number) {
         this.__selectedElementIndex.set(newValue);
+    }
+    private __editingTextIndex: ObservedPropertySimplePU<number>;
+    get editingTextIndex() {
+        return this.__editingTextIndex.get();
+    }
+    set editingTextIndex(newValue: number) {
+        this.__editingTextIndex.set(newValue);
+    }
+    private __editingTextValue: ObservedPropertySimplePU<string>;
+    get editingTextValue() {
+        return this.__editingTextValue.get();
+    }
+    set editingTextValue(newValue: string) {
+        this.__editingTextValue.set(newValue);
     }
     private __showMaterialPanel: ObservedPropertySimplePU<boolean>;
     get showMaterialPanel() {
@@ -454,7 +652,7 @@ class PlogEditorPage extends ViewPU {
     set showEyedropper(newValue: boolean) {
         this.__showEyedropper.set(newValue);
     }
-    private eyedropperTarget: number; // 0=背景色, 1=花纹色
+    private eyedropperTarget: number; // 0=背景色, 1=花纹色, 2=文字色
     private eyedropperPixelMap: image.PixelMap | null;
     private settings: RenderingContextSettings;
     private eyedropperCanvasContext: CanvasRenderingContext2D;
@@ -463,7 +661,133 @@ class PlogEditorPage extends ViewPU {
     private diaryIdsFromParams: number[];
     private textSubTools: string[];
     private bgSubTools: string[];
+    private resizeStartWidth: number;
+    private resizeStartHeight: number;
+    private dragStartX: number;
+    private dragStartY: number;
+    // ---- 文字工具状态 ----
+    private __textFontStyle: ObservedPropertySimplePU<TextStyle>;
+    get textFontStyle() {
+        return this.__textFontStyle.get();
+    }
+    set textFontStyle(newValue: TextStyle) {
+        this.__textFontStyle.set(newValue);
+    }
+    private __textFontSize: ObservedPropertySimplePU<number>;
+    get textFontSize() {
+        return this.__textFontSize.get();
+    }
+    set textFontSize(newValue: number) {
+        this.__textFontSize.set(newValue);
+    }
+    private __textShadowOpacity: ObservedPropertySimplePU<number>;
+    get textShadowOpacity() {
+        return this.__textShadowOpacity.get();
+    }
+    set textShadowOpacity(newValue: number) {
+        this.__textShadowOpacity.set(newValue);
+    }
+    private __textColor: ObservedPropertySimplePU<string>;
+    get textColor() {
+        return this.__textColor.get();
+    }
+    set textColor(newValue: string) {
+        this.__textColor.set(newValue);
+    }
+    private __textOpacity: ObservedPropertySimplePU<number>;
+    get textOpacity() {
+        return this.__textOpacity.get();
+    }
+    set textOpacity(newValue: number) {
+        this.__textOpacity.set(newValue);
+    }
+    private __textColorHue: ObservedPropertySimplePU<number>;
+    get textColorHue() {
+        return this.__textColorHue.get();
+    }
+    set textColorHue(newValue: number) {
+        this.__textColorHue.set(newValue);
+    }
+    private __textColorSaturation: ObservedPropertySimplePU<number>;
+    get textColorSaturation() {
+        return this.__textColorSaturation.get();
+    }
+    set textColorSaturation(newValue: number) {
+        this.__textColorSaturation.set(newValue);
+    }
+    private __textAlign: ObservedPropertySimplePU<TextAlign>;
+    get textAlign() {
+        return this.__textAlign.get();
+    }
+    set textAlign(newValue: TextAlign) {
+        this.__textAlign.set(newValue);
+    }
+    private __textVerticalAlign: ObservedPropertySimplePU<number>; // 0=Top 1=Center 2=Bottom
+    get textVerticalAlign() {
+        return this.__textVerticalAlign.get();
+    }
+    set textVerticalAlign(newValue: number) {
+        this.__textVerticalAlign.set(newValue);
+    }
+    private __textDirection: ObservedPropertySimplePU<TextDirection>;
+    get textDirection() {
+        return this.__textDirection.get();
+    }
+    set textDirection(newValue: TextDirection) {
+        this.__textDirection.set(newValue);
+    }
+    private __textLineSpacing: ObservedPropertySimplePU<number>;
+    get textLineSpacing() {
+        return this.__textLineSpacing.get();
+    }
+    set textLineSpacing(newValue: number) {
+        this.__textLineSpacing.set(newValue);
+    }
+    private __textLetterSpacing: ObservedPropertySimplePU<number>;
+    get textLetterSpacing() {
+        return this.__textLetterSpacing.get();
+    }
+    set textLetterSpacing(newValue: number) {
+        this.__textLetterSpacing.set(newValue);
+    }
+    private __textFontWeight: ObservedPropertySimplePU<number>;
+    get textFontWeight() {
+        return this.__textFontWeight.get();
+    }
+    set textFontWeight(newValue: number) {
+        this.__textFontWeight.set(newValue);
+    }
+    private __textItalicAngle: ObservedPropertySimplePU<number>;
+    get textItalicAngle() {
+        return this.__textItalicAngle.get();
+    }
+    set textItalicAngle(newValue: number) {
+        this.__textItalicAngle.set(newValue);
+    }
+    private __newTextContent: ObservedPropertySimplePU<string>;
+    get newTextContent() {
+        return this.__newTextContent.get();
+    }
+    set newTextContent(newValue: string) {
+        this.__newTextContent.set(newValue);
+    }
+    // 字体风格预设映射: styleKey -> fontFamily名
+    private fontStyleMap: Record<string, string>;
     aboutToAppear(): void {
+        // 注册自定义字体（必须使用 $rawfile() 函数格式）
+        font.registerFont({ familyName: 'LXGWWenKai', familySrc: { "id": 0, "type": 30000, params: ['LXGWWenKai-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'LXGWWenKaiLite', familySrc: { "id": 0, "type": 30000, params: ['LXGWWenKaiLite-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'ZCOOLKuaiLe', familySrc: { "id": 0, "type": 30000, params: ['ZCOOLKuaiLe-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'MaShanZheng', familySrc: { "id": 0, "type": 30000, params: ['MaShanZheng-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'ZCOOLXiaoWei', familySrc: { "id": 0, "type": 30000, params: ['ZCOOLXiaoWei-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'LiuJianMaoCao', familySrc: { "id": 0, "type": 30000, params: ['LiuJianMaoCao-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'ZhiMangXing', familySrc: { "id": 0, "type": 30000, params: ['ZhiMangXing-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'LongCang', familySrc: { "id": 0, "type": 30000, params: ['LongCang-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'Pacifico', familySrc: { "id": 0, "type": 30000, params: ['Pacifico-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'DancingScript', familySrc: { "id": 0, "type": 30000, params: ['DancingScript-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'Lobster', familySrc: { "id": 0, "type": 30000, params: ['Lobster-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'GreatVibes', familySrc: { "id": 0, "type": 30000, params: ['GreatVibes-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        font.registerFont({ familyName: 'Caveat', familySrc: { "id": 0, "type": 30000, params: ['Caveat-Regular.ttf'], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         const params = router.getParams() as Record<string, Object> | null;
         if (params) {
             if (params['plogId']) {
@@ -577,17 +901,19 @@ class PlogEditorPage extends ViewPU {
         Context.animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
             this.activeSubTool = subIndex;
         });
-        // 切换标签时同步更新底色类型（花纹作为独立叠加层不受影响）
-        if (subIndex === 0) {
-            this.bgType = 'solid';
+        // 仅在背景工具下同步更新底色类型
+        if (this.activeToolTab === 1) {
+            if (subIndex === 0) {
+                this.bgType = 'solid';
+            }
+            else if (subIndex === 1) {
+                this.bgType = 'gradient';
+            }
+            else if (subIndex === 3) {
+                // 自定义标签页，不自动切换 bgType，由 pickCustomBg 处理
+            }
+            this.applyBgToPlog();
         }
-        else if (subIndex === 1) {
-            this.bgType = 'gradient';
-        }
-        else if (subIndex === 3) {
-            // 自定义标签页，不自动切换 bgType，由 pickCustomBg 处理
-        }
-        this.applyBgToPlog();
     }
     /**
      * 展开/收起面板
@@ -785,8 +1111,12 @@ class PlogEditorPage extends ViewPU {
                 this.bgColor = pickedColor;
                 this.bgType = 'solid';
             }
-            else {
+            else if (this.eyedropperTarget === 1) {
                 this.patternColor = pickedColor;
+            }
+            else if (this.eyedropperTarget === 2) {
+                this.textColor = pickedColor;
+                this.applyTextPropsToSelected();
             }
             this.applyBgToPlog();
             this.showEyedropper = false;
@@ -837,7 +1167,19 @@ class PlogEditorPage extends ViewPU {
                 content: post.content,
                 zIndex: baseIndex,
                 fontSize: 14,
-                color: '#333333'
+                color: '#333333',
+                textOpacity: 100,
+                fontStyle: 'normal',
+                fontFamily: '',
+                shadowOpacity: 0,
+                textAlign: TextAlign.Start,
+                verticalAlign: 1,
+                textDirection: 'horizontal',
+                lineSpacing: 1.2,
+                letterSpacing: 0,
+                fontWeight: 400,
+                italicAngle: 0,
+                _version: 0,
             };
             this.elements.push(textElement);
         }
@@ -862,7 +1204,7 @@ class PlogEditorPage extends ViewPU {
     /**
      * 添加文字元素
      */
-    addTextElement(): void {
+    addTextElement(content?: string): void {
         const element: CanvasElement = {
             type: 'text',
             x: 50,
@@ -870,10 +1212,22 @@ class PlogEditorPage extends ViewPU {
             width: 200,
             height: 40,
             rotation: 0,
-            content: '双击编辑文字',
+            content: content || '双击编辑文字',
             zIndex: this.elements.length,
             fontSize: 16,
-            color: '#333333'
+            color: '#333333',
+            textOpacity: 100,
+            fontStyle: 'normal',
+            fontFamily: '',
+            shadowOpacity: 0,
+            textAlign: TextAlign.Center,
+            verticalAlign: 1,
+            textDirection: 'horizontal',
+            lineSpacing: 1.2,
+            letterSpacing: 0,
+            fontWeight: 400,
+            italicAngle: 0,
+            _version: 0,
         };
         this.elements.push(element);
         this.activeToolTab = -1;
@@ -894,6 +1248,103 @@ class PlogEditorPage extends ViewPU {
         };
         this.elements.push(element);
     }
+    /** 将文字属性面板的值应用到选中的文字元素 */
+    applyTextPropsToSelected(): void {
+        const idx = this.selectedElementIndex;
+        if (idx < 0 || idx >= this.elements.length)
+            return;
+        const el = this.elements[idx];
+        if (el.type !== 'text')
+            return;
+        // 创建新对象以触发 @State 响应式更新
+        const newEl: CanvasElement = {
+            type: el.type,
+            x: el.x,
+            y: el.y,
+            width: el.width,
+            height: el.height,
+            rotation: el.rotation,
+            content: el.content,
+            zIndex: el.zIndex,
+            fontSize: this.textFontSize,
+            color: this.textColor,
+            textOpacity: this.textOpacity,
+            fontStyle: this.textFontStyle,
+            fontFamily: this.fontStyleMap[this.textFontStyle] || '',
+            shadowOpacity: this.textShadowOpacity,
+            textAlign: this.textAlign,
+            verticalAlign: this.textVerticalAlign,
+            textDirection: this.textDirection,
+            lineSpacing: this.textLineSpacing,
+            letterSpacing: this.textLetterSpacing,
+            fontWeight: this.textFontWeight,
+            italicAngle: this.textItalicAngle,
+            _version: (el._version ?? 0) + 1,
+        };
+        this.elements[idx] = newEl;
+        this.elements = [...this.elements];
+    }
+    /** 从选中的文字元素加载属性到面板 */
+    loadTextPropsFromSelected(): void {
+        const idx = this.selectedElementIndex;
+        if (idx < 0 || idx >= this.elements.length)
+            return;
+        const el = this.elements[idx];
+        if (el.type !== 'text')
+            return;
+        this.textFontSize = el.fontSize ?? 16;
+        this.textColor = el.color ?? '#333333';
+        this.textOpacity = el.textOpacity ?? 100;
+        this.textFontStyle = el.fontStyle ?? 'normal';
+        this.textShadowOpacity = el.shadowOpacity ?? 0;
+        this.textAlign = el.textAlign ?? TextAlign.Center;
+        this.textVerticalAlign = el.verticalAlign ?? 1;
+        this.textDirection = el.textDirection ?? 'horizontal';
+        this.textLineSpacing = el.lineSpacing ?? 1.2;
+        this.textLetterSpacing = el.letterSpacing ?? 0;
+        this.textFontWeight = el.fontWeight ?? 400;
+        this.textItalicAngle = el.italicAngle ?? 0;
+    }
+    /** 删除指定元素 */
+    deleteElement(index: number): void {
+        this.elements.splice(index, 1);
+        if (this.selectedElementIndex === index) {
+            this.selectedElementIndex = -1;
+        }
+        else if (this.selectedElementIndex > index) {
+            this.selectedElementIndex--;
+        }
+    }
+    /** 复制指定元素 */
+    duplicateElement(index: number): void {
+        const el = this.elements[index];
+        const clone: CanvasElement = {
+            type: el.type,
+            x: el.x + 20,
+            y: el.y + 20,
+            width: el.width,
+            height: el.height,
+            rotation: el.rotation,
+            content: el.content,
+            zIndex: this.elements.length,
+            fontSize: el.fontSize,
+            color: el.color,
+            textOpacity: el.textOpacity,
+            fontStyle: el.fontStyle,
+            fontFamily: el.fontFamily,
+            shadowOpacity: el.shadowOpacity,
+            textAlign: el.textAlign,
+            verticalAlign: el.verticalAlign,
+            textDirection: el.textDirection,
+            lineSpacing: el.lineSpacing,
+            letterSpacing: el.letterSpacing,
+            fontWeight: el.fontWeight,
+            italicAngle: el.italicAngle,
+            _version: 0,
+        };
+        this.elements.push(clone);
+        this.selectedElementIndex = this.elements.length - 1;
+    }
     /**
      * 保存手账
      */
@@ -907,6 +1358,8 @@ class PlogEditorPage extends ViewPU {
             if (this.diaryIdsFromParams.length > 0 && !this.plog.diaryIds) {
                 this.plog.diaryIds = [...this.diaryIdsFromParams];
             }
+            // 生成缩略图
+            await this.generateThumbnail();
             if (this.plog.id === 0) {
                 const insertParams: PlogInsertParams = {
                     date: this.plog.date,
@@ -939,6 +1392,37 @@ class PlogEditorPage extends ViewPU {
         catch (error) {
             console.error('保存手账失败:', error);
             promptAction.showToast({ message: '保存失败' });
+        }
+    }
+    /**
+     * 生成缩略图：截图画布 → 缩放 → 保存到缓存目录
+     */
+    async generateThumbnail(): Promise<void> {
+        try {
+            const pixelMap: image.PixelMap = await componentSnapshot.get('plogCanvas');
+            // 缩放到缩略图尺寸
+            const scale = 200 / Math.max(pixelMap.getImageInfoSync().size.width, 1);
+            pixelMap.scaleSync(scale, scale);
+            // 编码为 PNG
+            const imagePackerApi = image.createImagePacker();
+            const packOpts: image.PackingOption = { format: 'image/png', quality: 80 };
+            const data: ArrayBuffer = await imagePackerApi.packing(pixelMap, packOpts);
+            imagePackerApi.release();
+            pixelMap.release();
+            // 保存到应用缓存目录
+            const context = getContext(this) as common.UIAbilityContext;
+            const thumbnailDir = context.cacheDir + '/thumbnails';
+            if (!fs.accessSync(thumbnailDir)) {
+                fs.mkdirSync(thumbnailDir);
+            }
+            const thumbnailPath = thumbnailDir + `/plog_${this.plog!.id}_${Date.now()}.png`;
+            const file: fs.File = fs.openSync(thumbnailPath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+            fs.writeSync(file.fd, data);
+            fs.closeSync(file);
+            this.plog!.thumbnail = thumbnailPath;
+        }
+        catch (error) {
+            console.error('生成缩略图失败:', error);
         }
     }
     /**
@@ -976,7 +1460,19 @@ class PlogEditorPage extends ViewPU {
                     content: `今日任务:\n${todoText}`,
                     zIndex: materials.posts.length,
                     fontSize: 14,
-                    color: '#333333'
+                    color: '#333333',
+                    textOpacity: 100,
+                    fontStyle: 'normal',
+                    fontFamily: '',
+                    shadowOpacity: 0,
+                    textAlign: TextAlign.Start,
+                    verticalAlign: 1,
+                    textDirection: 'horizontal',
+                    lineSpacing: 1.2,
+                    letterSpacing: 0,
+                    fontWeight: 400,
+                    italicAngle: 0,
+                    _version: 0,
                 };
                 this.elements.push(textElement);
             }
@@ -984,6 +1480,8 @@ class PlogEditorPage extends ViewPU {
             if (this.plog) {
                 this.plog.elements = this.elements;
                 this.applyBgToPlog();
+                // 生成缩略图
+                await this.generateThumbnail();
                 // 保存关联的随手记ID
                 this.plog.diaryIds = materials.posts.map((post: DiaryPost) => post.id);
                 if (this.plog.id === 0) {
@@ -1054,9 +1552,10 @@ class PlogEditorPage extends ViewPU {
     SubToolButton(label: string, subIndex: number, parent = null) {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
+            Column.layoutWeight(1);
             Column.height('100%');
-            Column.padding({ left: 16, right: 16 });
             Column.justifyContent(FlexAlign.Center);
+            Column.alignItems(HorizontalAlign.Center);
             Column.border({
                 width: { bottom: this.activeSubTool === subIndex ? 2 : 0 },
                 color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
@@ -1069,6 +1568,7 @@ class PlogEditorPage extends ViewPU {
             Text.fontColor(this.activeSubTool === subIndex
                 ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(this.activeSubTool === subIndex ? FontWeight.Medium : FontWeight.Normal);
+            Text.textAlign(TextAlign.Center);
         }, Text);
         Text.pop();
         Column.pop();
@@ -1722,68 +2222,265 @@ class PlogEditorPage extends ViewPU {
                 this.ifElseBranchUpdateFunction(2, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         // 文字详细设置（根据子工具切换）
+                        Scroll.create();
+                        // 文字详细设置（根据子工具切换）
+                        Scroll.width('100%');
+                        // 文字详细设置（根据子工具切换）
+                        Scroll.constraintSize({ minHeight: 120, maxHeight: 300 });
+                        // 文字详细设置（根据子工具切换）
+                        Scroll.scrollBar(BarState.Off);
+                        // 文字详细设置（根据子工具切换）
+                        Scroll.transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut }));
+                    }, Scroll);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Column.create();
-                        // 文字详细设置（根据子工具切换）
                         Column.width('100%');
-                        // 文字详细设置（根据子工具切换）
-                        Column.height(160);
-                        // 文字详细设置（根据子工具切换）
-                        Column.justifyContent(FlexAlign.Center);
-                        // 文字详细设置（根据子工具切换）
-                        Column.padding({ left: 16, right: 16 });
-                        // 文字详细设置（根据子工具切换）
-                        Column.transition(TransitionEffect.OPACITY.animation({ duration: 180, curve: Curve.EaseOut }));
+                        Column.padding({ left: 16, right: 16, top: 8, bottom: 8 });
                     }, Column);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 顶部：添加新文字
+                        Row.create({ space: 10 });
+                        // 顶部：添加新文字
+                        Row.width('100%');
+                        // 顶部：添加新文字
+                        Row.alignItems(VerticalAlign.Center);
+                        // 顶部：添加新文字
+                        Row.margin({ bottom: 16 });
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        TextInput.create({ placeholder: '输入文字内容', text: this.newTextContent });
+                        TextInput.fontSize(14);
+                        TextInput.layoutWeight(1);
+                        TextInput.height(40);
+                        TextInput.backgroundColor('#F5F5F5');
+                        TextInput.borderRadius(8);
+                        TextInput.padding({ left: 12, right: 12 });
+                        TextInput.onChange((value: string) => {
+                            this.newTextContent = value;
+                        });
+                    }, TextInput);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('+');
+                        Text.fontSize(24);
+                        Text.fontColor(Color.White);
+                        Text.fontWeight(FontWeight.Bold);
+                        Text.width(40);
+                        Text.height(40);
+                        Text.textAlign(TextAlign.Center);
+                        Text.backgroundColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.borderRadius(20);
+                        Text.onClick(() => {
+                            if (this.newTextContent.trim()) {
+                                this.addTextElement(this.newTextContent.trim());
+                                this.newTextContent = '';
+                            }
+                        });
+                    }, Text);
+                    Text.pop();
+                    // 顶部：添加新文字
+                    Row.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         If.create();
                         if (this.activeSubTool === 0) {
                             this.ifElseBranchUpdateFunction(0, () => {
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('选择文字样式');
-                                    Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.margin({ bottom: 12 });
-                                }, Text);
-                                Text.pop();
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Row.create({ space: 12 });
+                                    // ===== 样式 =====
+                                    // 风格选择（标签与选项同一行，横向滚动）
+                                    Row.create({ space: 8 });
+                                    // ===== 样式 =====
+                                    // 风格选择（标签与选项同一行，横向滚动）
+                                    Row.width('100%');
+                                    // ===== 样式 =====
+                                    // 风格选择（标签与选项同一行，横向滚动）
+                                    Row.justifyContent(FlexAlign.Center);
+                                    // ===== 样式 =====
+                                    // 风格选择（标签与选项同一行，横向滚动）
+                                    Row.alignItems(VerticalAlign.Center);
+                                    // ===== 样式 =====
+                                    // 风格选择（标签与选项同一行，横向滚动）
+                                    Row.margin({ bottom: 12 });
                                 }, Row);
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('常规');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Text.create('风格');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                 }, Text);
                                 Text.pop();
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('手写');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Scroll.create();
+                                    Scroll.layoutWeight(1);
+                                    Scroll.scrollBar(BarState.Off);
+                                    Scroll.scrollable(ScrollDirection.Horizontal);
+                                }, Scroll);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create({ space: 8 });
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    ForEach.create();
+                                    const forEachItemGenFunction = _item => {
+                                        const item = _item;
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Column.create();
+                                            Column.width(item.style === 'greatvibes' ? 72 : 52);
+                                            Column.height(36);
+                                            Column.justifyContent(FlexAlign.Center);
+                                            Column.backgroundColor(this.textFontStyle === item.style ? '#FFF0E8' : '#F5F5F5');
+                                            Column.borderRadius(18);
+                                            Column.border({
+                                                width: this.textFontStyle === item.style ? 1.5 : 0,
+                                                color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
+                                            });
+                                            Column.onClick(() => {
+                                                this.textFontStyle = item.style;
+                                                this.applyTextPropsToSelected();
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(item.label);
+                                            Text.fontSize(item.style === 'pacifico' || item.style === 'dancing' || item.style === 'lobster' || item.style === 'greatvibes' || item.style === 'caveat' ? 9 : 12);
+                                            Text.fontColor(this.textFontStyle === item.style
+                                                ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                            Text.fontWeight(this.textFontStyle === item.style ? FontWeight.Medium : FontWeight.Normal);
+                                            Text.fontFamily(this.fontStyleMap[item.style] || undefined);
+                                        }, Text);
+                                        Text.pop();
+                                        Column.pop();
+                                    };
+                                    this.forEachUpdateFunction(elmtId, [
+                                        { style: 'normal' as TextStyle, label: '常规' },
+                                        { style: 'handwrite' as TextStyle, label: '文楷' },
+                                        { style: 'serif' as TextStyle, label: '衬线' },
+                                        { style: 'mono' as TextStyle, label: '等宽' },
+                                        { style: 'kuaile' as TextStyle, label: '快乐' },
+                                        { style: 'brush' as TextStyle, label: '毛笔' },
+                                        { style: 'xiaowei' as TextStyle, label: '小薇' },
+                                        { style: 'caoshu' as TextStyle, label: '草书' },
+                                        { style: 'zhimangxing' as TextStyle, label: '志芒' },
+                                        { style: 'longcang' as TextStyle, label: '龙藏' },
+                                        { style: 'pacifico' as TextStyle, label: 'Pacifico' },
+                                        { style: 'dancing' as TextStyle, label: 'Dancing' },
+                                        { style: 'lobster' as TextStyle, label: 'Lobster' },
+                                        { style: 'greatvibes' as TextStyle, label: 'GreatVibes' },
+                                        { style: 'caveat' as TextStyle, label: 'Caveat' },
+                                    ], forEachItemGenFunction, (item: FontStyleItem) => item.style, false, false);
+                                }, ForEach);
+                                ForEach.pop();
+                                Row.pop();
+                                Scroll.pop();
+                                // ===== 样式 =====
+                                // 风格选择（标签与选项同一行，横向滚动）
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 大小
+                                    Row.create();
+                                    // 大小
+                                    Row.width('100%');
+                                    // 大小
+                                    Row.margin({ bottom: 12 });
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('大小');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
                                 }, Text);
                                 Text.pop();
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('艺术');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Slider.create({ value: this.textFontSize, min: 8, max: 72, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textFontSize = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textFontSize)}`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(28);
                                 }, Text);
                                 Text.pop();
+                                // 大小
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 阴影透明度
+                                    Row.create();
+                                    // 阴影透明度
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('阴影');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textShadowOpacity, min: 0, max: 100, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textShadowOpacity = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textShadowOpacity)}%`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                // 阴影透明度
                                 Row.pop();
                             });
                         }
                         else if (this.activeSubTool === 1) {
                             this.ifElseBranchUpdateFunction(1, () => {
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('选择文字颜色');
-                                    Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.margin({ bottom: 12 });
-                                }, Text);
-                                Text.pop();
+                                    // ===== 颜色 =====（参照背景纯色设置）
+                                    Scroll.create();
+                                    // ===== 颜色 =====（参照背景纯色设置）
+                                    Scroll.width('100%');
+                                    // ===== 颜色 =====（参照背景纯色设置）
+                                    Scroll.scrollBar(BarState.Off);
+                                }, Scroll);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create({ space: 12 });
+                                    Column.width('100%');
+                                    Column.padding({ left: 16, right: 16, top: 8, bottom: 8 });
+                                }, Column);
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
                                     Row.create({ space: 10 });
+                                    Row.width('100%');
+                                    Row.justifyContent(FlexAlign.Center);
                                 }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 吸色笔
+                                    Column.create();
+                                    // 吸色笔
+                                    Column.width(36);
+                                    // 吸色笔
+                                    Column.height(36);
+                                    // 吸色笔
+                                    Column.borderRadius(18);
+                                    // 吸色笔
+                                    Column.justifyContent(FlexAlign.Center);
+                                    // 吸色笔
+                                    Column.backgroundColor('#FFF0E8');
+                                    // 吸色笔
+                                    Column.border({ width: 1.5, color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+                                    // 吸色笔
+                                    Column.onClick(() => this.startEyedropper(2));
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('吸');
+                                    Text.fontSize(14);
+                                    Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                // 吸色笔
+                                Column.pop();
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
                                     ForEach.create();
                                     const forEachItemGenFunction = _item => {
@@ -1794,109 +2491,497 @@ class PlogEditorPage extends ViewPU {
                                             Column.height(32);
                                             Column.backgroundColor(color);
                                             Column.borderRadius(16);
+                                            Column.border({
+                                                width: this.textColor === color ? 2 : 0.5,
+                                                color: this.textColor === color ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : '#CCCCCC'
+                                            });
+                                            Column.onClick(() => {
+                                                this.textColor = color;
+                                                this.applyTextPropsToSelected();
+                                            });
                                         }, Column);
                                         Column.pop();
                                     };
-                                    this.forEachUpdateFunction(elmtId, ['#333333', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#000000'], forEachItemGenFunction, (color: string) => color, false, false);
+                                    this.forEachUpdateFunction(elmtId, ['#333333', '#000000', '#FFFFFF', '#FF6B6B', '#4ECDC4', '#45B7D1',
+                                        '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A65', '#64B5F6', '#81C784'], forEachItemGenFunction, (color: string) => color, false, false);
                                 }, ForEach);
                                 ForEach.pop();
                                 Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('色相');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textColorHue, min: 0, max: 360, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.selectedColor(this.hslToHex(this.textColorHue, this.textColorSaturation));
+                                    Slider.onChange((value: number) => {
+                                        this.textColorHue = value;
+                                        this.textColor = this.hslToHex(this.textColorHue, this.textColorSaturation);
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textColorHue)}°`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('饱和度');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textColorSaturation, min: 0, max: 100, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.selectedColor(this.hslToHex(this.textColorHue, this.textColorSaturation));
+                                    Slider.onChange((value: number) => {
+                                        this.textColorSaturation = value;
+                                        this.textColor = this.hslToHex(this.textColorHue, this.textColorSaturation);
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textColorSaturation)}%`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('透明度');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textOpacity, min: 0, max: 100, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textOpacity = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textOpacity)}%`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                Column.pop();
+                                // ===== 颜色 =====（参照背景纯色设置）
+                                Scroll.pop();
                             });
                         }
                         else if (this.activeSubTool === 2) {
                             this.ifElseBranchUpdateFunction(2, () => {
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('文字排版');
-                                    Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.margin({ bottom: 12 });
-                                }, Text);
-                                Text.pop();
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Row.create({ space: 16 });
+                                    // ===== 排版 =====
+                                    Row.create({ space: 12 });
+                                    // ===== 排版 =====
+                                    Row.width('100%');
+                                    // ===== 排版 =====
+                                    Row.alignItems(VerticalAlign.Center);
+                                    // ===== 排版 =====
+                                    Row.padding(16);
+                                    // ===== 排版 =====
+                                    Row.backgroundColor(Color.White);
+                                    // ===== 排版 =====
+                                    Row.borderRadius(12);
+                                    // ===== 排版 =====
+                                    Row.margin({ bottom: 12 });
                                 }, Row);
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('左对齐');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    // 横竖切换
+                                    Row.create({ space: 0 });
+                                    // 横竖切换
+                                    Row.width(72);
+                                    // 横竖切换
+                                    Row.height(32);
+                                    // 横竖切换
+                                    Row.backgroundColor('#F0F0F0');
+                                    // 横竖切换
+                                    Row.borderRadius(16);
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width(36);
+                                    Column.height(28);
+                                    Column.justifyContent(FlexAlign.Center);
+                                    Column.backgroundColor(this.textDirection === 'horizontal' ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : 'transparent');
+                                    Column.borderRadius(14);
+                                    Column.onClick(() => {
+                                        this.textDirection = 'horizontal';
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('横');
+                                    Text.fontSize(13);
+                                    Text.fontColor(this.textDirection === 'horizontal' ? Color.White : '#666666');
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                Column.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width(36);
+                                    Column.height(28);
+                                    Column.justifyContent(FlexAlign.Center);
+                                    Column.backgroundColor(this.textDirection === 'vertical' ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : 'transparent');
+                                    Column.borderRadius(14);
+                                    Column.onClick(() => {
+                                        this.textDirection = 'vertical';
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('竖');
+                                    Text.fontSize(13);
+                                    Text.fontColor(this.textDirection === 'vertical' ? Color.White : '#666666');
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                Column.pop();
+                                // 横竖切换
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    // 对齐方式
+                                    if (this.textDirection === 'horizontal') {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create({ space: 6 });
+                                                Row.layoutWeight(1);
+                                                Row.height(32);
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                ForEach.create();
+                                                const forEachItemGenFunction = _item => {
+                                                    const item = _item;
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Column.create();
+                                                        Column.layoutWeight(1);
+                                                        Column.height(32);
+                                                        Column.justifyContent(FlexAlign.Center);
+                                                        Column.backgroundColor(this.textAlign === item.align ? '#FFF0E8' : '#F5F5F5');
+                                                        Column.borderRadius(16);
+                                                        Column.border({
+                                                            width: this.textAlign === item.align ? 1.5 : 0,
+                                                            color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
+                                                        });
+                                                        Column.onClick(() => {
+                                                            this.textAlign = item.align;
+                                                            this.applyTextPropsToSelected();
+                                                        });
+                                                    }, Column);
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Text.create(item.label);
+                                                        Text.fontSize(12);
+                                                        Text.fontColor(this.textAlign === item.align
+                                                            ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                    }, Text);
+                                                    Text.pop();
+                                                    Column.pop();
+                                                };
+                                                this.forEachUpdateFunction(elmtId, [
+                                                    { align: TextAlign.Start, label: '左对齐' },
+                                                    { align: TextAlign.Center, label: '居中' },
+                                                    { align: TextAlign.End, label: '右对齐' },
+                                                ], forEachItemGenFunction, (item: TextAlignItem) => item.label, false, false);
+                                            }, ForEach);
+                                            ForEach.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create({ space: 6 });
+                                                Row.layoutWeight(1);
+                                                Row.height(32);
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                ForEach.create();
+                                                const forEachItemGenFunction = _item => {
+                                                    const item = _item;
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Column.create();
+                                                        Column.layoutWeight(1);
+                                                        Column.height(32);
+                                                        Column.justifyContent(FlexAlign.Center);
+                                                        Column.backgroundColor(this.textVerticalAlign === item.va ? '#FFF0E8' : '#F5F5F5');
+                                                        Column.borderRadius(16);
+                                                        Column.border({
+                                                            width: this.textVerticalAlign === item.va ? 1.5 : 0,
+                                                            color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
+                                                        });
+                                                        Column.onClick(() => {
+                                                            this.textVerticalAlign = item.va;
+                                                            this.applyTextPropsToSelected();
+                                                        });
+                                                    }, Column);
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Text.create(item.label);
+                                                        Text.fontSize(12);
+                                                        Text.fontColor(this.textVerticalAlign === item.va
+                                                            ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                    }, Text);
+                                                    Text.pop();
+                                                    Column.pop();
+                                                };
+                                                this.forEachUpdateFunction(elmtId, [
+                                                    { va: 0, label: '上对齐' },
+                                                    { va: 1, label: '居中' },
+                                                    { va: 2, label: '下对齐' },
+                                                ], forEachItemGenFunction, (item: VerticalAlignItem) => item.label, false, false);
+                                            }, ForEach);
+                                            ForEach.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                // ===== 排版 =====
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 间距设置
+                                    Column.create({ space: 12 });
+                                    // 间距设置
+                                    Column.width('100%');
+                                    // 间距设置
+                                    Column.padding(16);
+                                    // 间距设置
+                                    Column.backgroundColor(Color.White);
+                                    // 间距设置
+                                    Column.borderRadius(12);
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.textDirection === 'vertical' ? '字距' : '行距');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
                                 }, Text);
                                 Text.pop();
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('居中');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
-                                }, Text);
-                                Text.pop();
+                                    Slider.create({ value: this.textLineSpacing, min: 1, max: 3, step: 0.1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textLineSpacing = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('右对齐');
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Text.create(`${this.textLineSpacing.toFixed(1)}`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(32);
                                 }, Text);
                                 Text.pop();
                                 Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.textDirection === 'vertical' ? '行距' : '字距');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textLetterSpacing, min: 0, max: 20, step: 0.5 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textLetterSpacing = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${this.textLetterSpacing.toFixed(1)}`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(32);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                // 间距设置
+                                Column.pop();
                             });
                         }
                         else if (this.activeSubTool === 3) {
                             this.ifElseBranchUpdateFunction(3, () => {
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('粗斜体设置');
-                                    Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.margin({ bottom: 12 });
-                                }, Text);
-                                Text.pop();
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Row.create({ space: 16 });
+                                    // ===== 粗斜体 =====
+                                    // 粗体（标签居左，选项居中）
+                                    Row.create();
+                                    // ===== 粗斜体 =====
+                                    // 粗体（标签居左，选项居中）
+                                    Row.width('100%');
+                                    // ===== 粗斜体 =====
+                                    // 粗体（标签居左，选项居中）
+                                    Row.justifyContent(FlexAlign.Start);
+                                    // ===== 粗斜体 =====
+                                    // 粗体（标签居左，选项居中）
+                                    Row.alignItems(VerticalAlign.Center);
+                                    // ===== 粗斜体 =====
+                                    // 粗体（标签居左，选项居中）
+                                    Row.margin({ bottom: 12 });
                                 }, Row);
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('B');
-                                    Text.fontWeight(FontWeight.Bold);
-                                    Text.fontSize(20);
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Text.create('粗体');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
                                 }, Text);
                                 Text.pop();
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('I');
-                                    Text.fontStyle(FontStyle.Italic);
-                                    Text.fontSize(20);
-                                    Text.padding(8);
-                                    Text.backgroundColor('#F5F5F5');
-                                    Text.borderRadius(6);
+                                    Row.create({ space: 8 });
+                                    Row.layoutWeight(1);
+                                    Row.justifyContent(FlexAlign.Center);
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    ForEach.create();
+                                    const forEachItemGenFunction = _item => {
+                                        const item = _item;
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Column.create();
+                                            Column.padding({ left: 14, right: 14, top: 6, bottom: 6 });
+                                            Column.backgroundColor(this.textFontWeight === item.w ? '#FFF0E8' : '#F5F5F5');
+                                            Column.borderRadius(16);
+                                            Column.border({
+                                                width: this.textFontWeight === item.w ? 1.5 : 0,
+                                                color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
+                                            });
+                                            Column.onClick(() => {
+                                                this.textFontWeight = item.w;
+                                                this.applyTextPropsToSelected();
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(item.label);
+                                            Text.fontSize(13);
+                                            Text.fontWeight(item.w);
+                                            Text.fontColor(this.textFontWeight === item.w
+                                                ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                        }, Text);
+                                        Text.pop();
+                                        Column.pop();
+                                    };
+                                    this.forEachUpdateFunction(elmtId, [
+                                        { w: 100, label: '细体' },
+                                        { w: 400, label: '常规' },
+                                        { w: 700, label: '粗体' },
+                                        { w: 900, label: '特粗' },
+                                    ], forEachItemGenFunction, (item: FontWeightItem) => item.w.toString(), false, false);
+                                }, ForEach);
+                                ForEach.pop();
+                                Row.pop();
+                                // ===== 粗斜体 =====
+                                // 粗体（标签居左，选项居中）
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 字体粗细微调
+                                    Row.create();
+                                    // 字体粗细微调
+                                    Row.width('100%');
+                                    // 字体粗细微调
+                                    Row.margin({ bottom: 12 });
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('粗细');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
                                 }, Text);
                                 Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textFontWeight, min: 100, max: 900, step: 100 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textFontWeight = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textFontWeight)}`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(32);
+                                }, Text);
+                                Text.pop();
+                                // 字体粗细微调
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 斜体角度（斜体+角度 合并为一行）
+                                    Row.create();
+                                    // 斜体角度（斜体+角度 合并为一行）
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('斜体角度');
+                                    Text.fontSize(13);
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(56);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.textItalicAngle, min: -30, max: 30, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.textItalicAngle = value;
+                                        this.applyTextPropsToSelected();
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.textItalicAngle)}°`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                // 斜体角度（斜体+角度 合并为一行）
                                 Row.pop();
                             });
                         }
-                        else if (this.activeSubTool === 4) {
-                            this.ifElseBranchUpdateFunction(4, () => {
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('文字弯曲效果');
-                                    Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.margin({ bottom: 12 });
-                                }, Text);
-                                Text.pop();
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    Text.create('弯曲效果开发中');
-                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                }, Text);
-                                Text.pop();
-                            });
-                        }
                         else {
-                            this.ifElseBranchUpdateFunction(5, () => {
+                            this.ifElseBranchUpdateFunction(4, () => {
                             });
                         }
                     }, If);
                     If.pop();
-                    // 文字详细设置（根据子工具切换）
                     Column.pop();
+                    // 文字详细设置（根据子工具切换）
+                    Scroll.pop();
                 });
             }
             else if (this.activeToolTab === 3) {
@@ -2214,21 +3299,323 @@ class PlogEditorPage extends ViewPU {
                     else if (element.type === 'text') {
                         this.ifElseBranchUpdateFunction(1, () => {
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                Text.create(element.content);
-                                Text.fontSize(element.fontSize || 14);
-                                Text.fontColor(element.color || '#333333');
-                                Text.position({ x: element.x, y: element.y });
-                                Text.width(element.width);
-                                Text.zIndex(element.zIndex);
-                                Text.border({
-                                    width: this.selectedElementIndex === index ? 2 : 0,
-                                    color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
-                                });
-                                Text.onClick(() => {
-                                    this.selectedElementIndex = index;
-                                });
-                            }, Text);
-                            Text.pop();
+                                Stack.create();
+                                Stack.position({ x: this.elements[index].x, y: this.elements[index].y });
+                                Stack.width(this.elements[index].width);
+                                Stack.height(this.elements[index].height);
+                                Stack.zIndex(element.zIndex);
+                                Stack.rotate({ angle: element.rotation });
+                            }, Stack);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                if (this.editingTextIndex === index) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 编辑模式
+                                            Column.create();
+                                            // 编辑模式
+                                            Column.width('100%');
+                                            // 编辑模式
+                                            Column.height('100%');
+                                            // 编辑模式
+                                            Column.justifyContent(element.textDirection === 'vertical'
+                                                ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
+                                                : FlexAlign.Center);
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            TextInput.create({ text: this.editingTextValue });
+                                            TextInput.fontSize(element.fontSize || 14);
+                                            TextInput.fontColor(element.color || '#333333');
+                                            TextInput.fontWeight(element.fontWeight ?? 400);
+                                            TextInput.fontFamily(element.fontFamily || undefined);
+                                            TextInput.opacity((element.textOpacity ?? 100) / 100);
+                                            TextInput.backgroundColor(Color.Transparent);
+                                            TextInput.width('100%');
+                                            TextInput.padding({ left: 12, right: 12, top: 8, bottom: 8 });
+                                            TextInput.textAlign(element.textAlign ?? TextAlign.Center);
+                                            TextInput.onChange((value: string) => {
+                                                this.editingTextValue = value;
+                                            });
+                                            TextInput.onBlur(() => {
+                                                const old = this.elements[index];
+                                                this.elements[index] = {
+                                                    type: old.type, x: old.x, y: old.y, width: old.width, height: old.height,
+                                                    rotation: old.rotation, content: this.editingTextValue, zIndex: old.zIndex,
+                                                    fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                                                    fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity,
+                                                    textAlign: old.textAlign, verticalAlign: old.verticalAlign,
+                                                    textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                                                    letterSpacing: old.letterSpacing, fontWeight: old.fontWeight,
+                                                    italicAngle: old.italicAngle, fontFamily: old.fontFamily,
+                                                    _version: (old._version ?? 0) + 1,
+                                                };
+                                                this.elements = [...this.elements];
+                                                this.editingTextIndex = -1;
+                                            });
+                                        }, TextInput);
+                                        // 编辑模式
+                                        Column.pop();
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 普通模式
+                                            Column.create();
+                                            // 普通模式
+                                            Column.width('100%');
+                                            // 普通模式
+                                            Column.height('100%');
+                                            // 普通模式
+                                            Column.justifyContent(element.textDirection === 'vertical'
+                                                ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
+                                                : FlexAlign.Center);
+                                            globalThis.Gesture.create(GesturePriority.Low);
+                                            GestureGroup.create(GestureMode.Exclusive);
+                                            // 拖拽移动（移动超过5px触发）
+                                            PanGesture.create({ fingers: 1, distance: 5 });
+                                            // 拖拽移动（移动超过5px触发）
+                                            PanGesture.onActionStart(() => {
+                                                this.dragStartX = this.elements[index].x;
+                                                this.dragStartY = this.elements[index].y;
+                                                this.selectedElementIndex = index;
+                                                this.loadTextPropsFromSelected();
+                                            });
+                                            // 拖拽移动（移动超过5px触发）
+                                            PanGesture.onActionUpdate((event: GestureEvent) => {
+                                                const old = this.elements[index];
+                                                this.elements[index] = {
+                                                    type: old.type, x: this.dragStartX + event.offsetX, y: this.dragStartY + event.offsetY,
+                                                    width: old.width, height: old.height, rotation: old.rotation, content: old.content,
+                                                    zIndex: old.zIndex, fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                                                    fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                                                    verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                                                    letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                                                    fontFamily: old.fontFamily,
+                                                    _version: (old._version ?? 0) + 1,
+                                                };
+                                                this.elements = [...this.elements];
+                                            });
+                                            // 拖拽移动（移动超过5px触发）
+                                            PanGesture.onActionEnd(() => {
+                                                this.elements = [...this.elements];
+                                            });
+                                            // 拖拽移动（移动超过5px触发）
+                                            PanGesture.pop();
+                                            // 双击编辑
+                                            TapGesture.create({ count: 2 });
+                                            // 双击编辑
+                                            TapGesture.onAction(() => {
+                                                this.editingTextValue = element.content;
+                                                this.editingTextIndex = index;
+                                            });
+                                            // 双击编辑
+                                            TapGesture.pop();
+                                            // 单击选中
+                                            TapGesture.create({ count: 1 });
+                                            // 单击选中
+                                            TapGesture.onAction(() => {
+                                                this.selectedElementIndex = index;
+                                                this.loadTextPropsFromSelected();
+                                            });
+                                            // 单击选中
+                                            TapGesture.pop();
+                                            GestureGroup.pop();
+                                            globalThis.Gesture.pop();
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(element.textDirection === 'vertical' ? element.content.split('').join('\n') : element.content);
+                                            Text.fontSize(element.fontSize || 14);
+                                            Text.fontColor(element.color || '#333333');
+                                            Text.fontWeight(element.fontWeight ?? 400);
+                                            Text.fontFamily(element.fontFamily || undefined);
+                                            Text.textAlign(element.textAlign ?? TextAlign.Center);
+                                            Text.maxLines(50);
+                                            Text.textOverflow({ overflow: TextOverflow.Clip });
+                                            Text.letterSpacing(element.letterSpacing ?? 0);
+                                            Text.lineHeight(element.textDirection === 'vertical'
+                                                ? (element.fontSize ?? 14) + (element.letterSpacing ?? 0)
+                                                : (element.fontSize ?? 14) * (element.lineSpacing ?? 1.2));
+                                            Text.textShadow({
+                                                radius: (element.shadowOpacity ?? 0) > 0 ? 2 : 0,
+                                                color: (element.shadowOpacity ?? 0) > 0
+                                                    ? `rgba(0,0,0,${Math.max(0.15, (element.shadowOpacity ?? 0) / 100)})`
+                                                    : 'rgba(0,0,0,0)',
+                                                offsetX: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0,
+                                                offsetY: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0
+                                            });
+                                            Text.opacity((element.textOpacity ?? 100) / 100);
+                                            Text.width('100%');
+                                            Text.padding({ left: 12, right: 12, top: 8, bottom: 8 });
+                                            Text.rotate({ angle: element.italicAngle ?? 0 });
+                                        }, Text);
+                                        Text.pop();
+                                        // 普通模式
+                                        Column.pop();
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                // 选中时的边框（白色虚线，不拦截触摸事件）
+                                if (this.selectedElementIndex === index) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Column.create();
+                                            Column.width('100%');
+                                            Column.height('100%');
+                                            Column.border({
+                                                width: 3,
+                                                color: Color.White,
+                                                style: BorderStyle.Dashed
+                                            });
+                                            Column.borderRadius(4);
+                                            Column.hitTestBehavior(HitTestMode.None);
+                                        }, Column);
+                                        Column.pop();
+                                    });
+                                }
+                                // 选中时的控制按钮（白底黑字）
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                // 选中时的控制按钮（白底黑字）
+                                if (this.selectedElementIndex === index && this.editingTextIndex !== index) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 删除按钮（右上角）×
+                                            Column.create();
+                                            // 删除按钮（右上角）×
+                                            Column.width(22);
+                                            // 删除按钮（右上角）×
+                                            Column.height(22);
+                                            // 删除按钮（右上角）×
+                                            Column.backgroundColor(Color.White);
+                                            // 删除按钮（右上角）×
+                                            Column.borderRadius(11);
+                                            // 删除按钮（右上角）×
+                                            Column.position({ x: this.elements[index].width - 11, y: -11 });
+                                            // 删除按钮（右上角）×
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 删除按钮（右上角）×
+                                            Column.zIndex(100);
+                                            // 删除按钮（右上角）×
+                                            Column.onClick(() => {
+                                                this.deleteElement(index);
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('×');
+                                            Text.fontSize(14);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 删除按钮（右上角）×
+                                        Column.pop();
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 复制按钮（左下角）+1
+                                            Column.create();
+                                            // 复制按钮（左下角）+1
+                                            Column.width(22);
+                                            // 复制按钮（左下角）+1
+                                            Column.height(22);
+                                            // 复制按钮（左下角）+1
+                                            Column.backgroundColor(Color.White);
+                                            // 复制按钮（左下角）+1
+                                            Column.borderRadius(11);
+                                            // 复制按钮（左下角）+1
+                                            Column.position({ x: -11, y: this.elements[index].height - 11 });
+                                            // 复制按钮（左下角）+1
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 复制按钮（左下角）+1
+                                            Column.zIndex(100);
+                                            // 复制按钮（左下角）+1
+                                            Column.onClick(() => {
+                                                this.duplicateElement(index);
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('+1');
+                                            Text.fontSize(9);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 复制按钮（左下角）+1
+                                        Column.pop();
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.create();
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.width(22);
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.height(22);
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.backgroundColor(Color.White);
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.borderRadius(11);
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.position({ x: this.elements[index].width - 11, y: this.elements[index].height - 11 });
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 缩放手柄（右下角）循环箭头
+                                            Column.zIndex(100);
+                                            globalThis.Gesture.create(GesturePriority.Low);
+                                            PanGesture.create();
+                                            PanGesture.onActionStart(() => {
+                                                this.resizeStartWidth = this.elements[index].width;
+                                                this.resizeStartHeight = this.elements[index].height;
+                                            });
+                                            PanGesture.onActionUpdate((event: GestureEvent) => {
+                                                const newWidth = Math.max(60, this.resizeStartWidth + event.offsetX);
+                                                const newHeight = Math.max(30, this.resizeStartHeight + event.offsetY);
+                                                const old = this.elements[index];
+                                                this.elements[index] = {
+                                                    type: old.type, x: old.x, y: old.y, width: newWidth, height: newHeight,
+                                                    rotation: old.rotation, content: old.content, zIndex: old.zIndex,
+                                                    fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                                                    fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                                                    verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                                                    letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                                                    fontFamily: old.fontFamily,
+                                                    _version: (old._version ?? 0) + 1,
+                                                };
+                                                this.elements = [...this.elements];
+                                            });
+                                            PanGesture.onActionEnd(() => {
+                                                this.elements = [...this.elements];
+                                            });
+                                            PanGesture.pop();
+                                            globalThis.Gesture.pop();
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('↻');
+                                            Text.fontSize(14);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 缩放手柄（右下角）循环箭头
+                                        Column.pop();
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            Stack.pop();
                         });
                     }
                     else {
@@ -2238,7 +3625,7 @@ class PlogEditorPage extends ViewPU {
                 }, If);
                 If.pop();
             };
-            this.forEachUpdateFunction(elmtId, this.elements, forEachItemGenFunction, (element: CanvasElement, index: number) => index.toString(), true, true);
+            this.forEachUpdateFunction(elmtId, this.elements, forEachItemGenFunction, (element: CanvasElement, index: number) => `${index}_${element._version ?? 0}`, true, true);
         }, ForEach);
         // 画布元素
         ForEach.pop();
@@ -2296,7 +3683,7 @@ class PlogEditorPage extends ViewPU {
                                     Row.create();
                                     Row.width('100%');
                                     Row.height(40);
-                                    Row.justifyContent(FlexAlign.Center);
+                                    Row.justifyContent(FlexAlign.SpaceEvenly);
                                     Row.border({
                                         width: { top: 0.5 },
                                         color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
