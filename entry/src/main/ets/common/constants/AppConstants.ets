@@ -45,7 +45,15 @@ export class AppConstants {
       elements TEXT NOT NULL,
       diary_ids TEXT,
       created_at INTEGER NOT NULL,
-      thumbnail TEXT
+      thumbnail TEXT,
+      bg_type TEXT,
+      bg_color TEXT,
+      gradient_colors TEXT,
+      gradient_angle INTEGER,
+      pattern_type TEXT,
+      pattern_thickness INTEGER,
+      pattern_spacing INTEGER,
+      custom_bg_uri TEXT
     )
   `;
 

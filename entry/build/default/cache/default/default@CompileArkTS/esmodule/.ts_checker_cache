@@ -97,7 +97,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets": {
-      "mtimeMs": 1780588737236.201,
+      "mtimeMs": 1780634669573.543,
       "children": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.data.relationalStore.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.app.ability.common.d.ts",
@@ -116,7 +116,10 @@
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\DiaryPage.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
-      "error": false
+      "error": true,
+      "errorCodes": [
+        28040
+      ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\PreferencesUtil.ets": {
       "mtimeMs": 1780468943488.3665,
@@ -584,7 +587,8 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.web.webview.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.window.floatingBall.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.screenshot.d.ts",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.sendablePhotoAccessHelper.d.ets"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.sendablePhotoAccessHelper.d.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -848,7 +852,8 @@
       ],
       "parent": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.UIContext.d.ts",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.ArkUI.d.ts"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\kits\\@kit.ArkUI.d.ts",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -1651,7 +1656,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\constants\\AppConstants.ets": {
-      "mtimeMs": 1780588564169.8599,
+      "mtimeMs": 1780591614867.078,
       "children": [],
       "parent": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets",
@@ -1691,7 +1696,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts": {
-      "mtimeMs": 1780588533833.1272,
+      "mtimeMs": 1780634616243.2568,
       "children": [],
       "parent": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets",
@@ -1843,7 +1848,8 @@
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.multimedia.movingphotoview.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.AlbumPickerComponent.d.ets",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.PhotoPickerComponent.d.ets",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.RecentPhotoComponent.d.ets"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.RecentPhotoComponent.d.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -1988,7 +1994,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets": {
-      "mtimeMs": 1780588996929.1458,
+      "mtimeMs": 1780639855621.2354,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\DiaryViewModel.ets",
@@ -1999,7 +2005,10 @@
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\utils\\DateUtils.ets",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.router.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.curves.d.ts",
-        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.promptAction.d.ts"
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.arkui.componentSnapshot.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.promptAction.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.file.photoAccessHelper.d.ts",
+        "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.multimedia.image.d.ts"
       ],
       "parent": [],
       "error": true,
