@@ -10,6 +10,21 @@ export type TextDirection = 'horizontal' | 'vertical';
 // 文字弯曲类型
 export type TextCurveType = 'none' | 'up' | 'down';
 
+// 画笔笔画中的一个点
+export interface DrawPoint {
+  x: number;
+  y: number;
+}
+
+// 一条画笔笔画
+export interface DrawStroke {
+  brushType: number;       // 画笔类型: 0=橡皮, 1=画笔, ...
+  brushColor: string;      // 颜色
+  brushThickness: number;  // 粗细
+  brushOpacity: number;    // 透明度 0-100
+  points: DrawPoint[];     // 路径点
+}
+
 export interface CanvasElement {
   type: 'image' | 'text' | 'sticker';
   x: number;
@@ -60,6 +75,7 @@ export interface PlogCanvas {
   patternSpacing: number;   // 花纹间隔 (5-50)
   customBgUri: string;       // 自定义背景图 URI
   elements: CanvasElement[]; // 画布元素数组
+  drawStrokes: DrawStroke[]; // 画笔笔画数组
   diaryIds?: number[];       // 关联的随手记ID
   createdAt: number;
   thumbnail: string;         // 缩略图

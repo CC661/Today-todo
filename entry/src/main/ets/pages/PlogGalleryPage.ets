@@ -37,6 +37,10 @@ struct PlogGalleryPage {
     this.loadPlogs();
   }
 
+  onPageShow(): void {
+    this.loadPlogs();
+  }
+
   async loadPlogs(): Promise<void> {
     this.isLoading = true;
     try {
@@ -399,12 +403,26 @@ struct PlogGalleryPage {
           // 画布元素预览
           ForEach(plog.elements, (element: CanvasElement) => {
             if (element.type === 'image' || element.type === 'sticker') {
-              Image(element.content)
-                .width(element.width)
-                .height(element.height)
-                .position({ x: element.x, y: element.y })
-                .rotate({ angle: element.rotation })
-                .zIndex(element.zIndex)
+              Stack() {
+                if (element.content.startsWith('file://') || element.content.startsWith('content://') ||
+                  element.content.startsWith('http') || element.content.startsWith('/')) {
+                  Image(element.content)
+                    .width('100%')
+                    .height('100%')
+                    .objectFit(ImageFit.Contain)
+                } else {
+                  Text(element.content)
+                    .fontSize(Math.min(element.width, element.height) * 0.7)
+                    .width('100%')
+                    .height('100%')
+                    .textAlign(TextAlign.Center)
+                }
+              }
+              .width(element.width)
+              .height(element.height)
+              .position({ x: element.x, y: element.y })
+              .rotate({ angle: element.rotation })
+              .zIndex(element.zIndex)
             } else if (element.type === 'text') {
               Text(element.content)
                 .fontSize(element.fontSize || 14)

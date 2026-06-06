@@ -1,6 +1,6 @@
 import PlogViewModel from '../viewmodel/PlogViewModel';
 import DiaryViewModel from '../viewmodel/DiaryViewModel';
-import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection, DrawStroke } from '../model/PlogCanvas';
 import type { DiaryPost } from '../model/DiaryPost';
 import type { TodoItem } from '../model/TodoItem';
 import type { PlogInsertParams } from '../common/database/RDBStoreUtil';
@@ -85,7 +85,7 @@ struct PlogEditorPage {
 
   // 取色器状态
   @State showEyedropper: boolean = false;
-  private eyedropperTarget: number = 0;  // 0=背景色, 1=花纹色, 2=文字色
+  private eyedropperTarget: number = 0;  // 0=背景色, 1=花纹色, 2=文字色, 3=画笔色
   private eyedropperPixelMap: image.PixelMap | null = null;
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private eyedropperCanvasContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
@@ -99,6 +99,21 @@ struct PlogEditorPage {
   private resizeStartHeight: number = 0;
   private dragStartX: number = 0;
   private dragStartY: number = 0;
+
+  // ---- 画笔状态 ----
+  @State brushType: number = 1;  // 0=橡皮, 1=基础画笔, 2=毛笔, 3=马克笔, 4=荧光笔, 5=铅笔, 6=蜡笔, 7=水彩笔
+  @State brushColor: string = '#333333';
+  @State brushColorHue: number = 0;
+  @State brushColorSaturation: number = 0;
+  @State brushThickness: number = 4;     // 1-50
+  @State brushOpacity: number = 100;     // 0-100
+  @State isDrawing: boolean = false;
+  private drawLastX: number = 0;
+  private drawLastY: number = 0;
+  private drawingCanvasContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  @State drawStrokes: DrawStroke[] = [];     // 所有笔画数据
+  private currentStroke: DrawStroke | null = null;  // 当前正在绘制的笔画
+  private canvasReady: boolean = false;       // Canvas 是否已准备好
 
   // ---- 文字工具状态 ----
   @State textFontStyle: TextStyle = 'normal';
@@ -116,6 +131,18 @@ struct PlogEditorPage {
   @State textFontWeight: number = 400;
   @State textItalicAngle: number = 0;
   @State newTextContent: string = '';
+
+  // ---- 撤销/重做状态 ----
+  @State historyStack: CanvasElement[][] = [];
+  @State historyIndex: number = -1;
+  private maxHistorySize: number = 50;
+
+  // ---- 画布缩放状态 ----
+  @State canvasScale: number = 1.0;
+  @State canvasOffsetX: number = 0;
+  @State canvasOffsetY: number = 0;
+  private panStartOffsetX: number = 0;
+  private panStartOffsetY: number = 0;
 
   // 字体风格预设映射: styleKey -> fontFamily名
   private fontStyleMap: Record<string, string> = {
@@ -179,8 +206,8 @@ struct PlogEditorPage {
       if (existingPlog) {
         this.plog = existingPlog;
         this.elements = existingPlog.elements;
+        this.drawStrokes = existingPlog.drawStrokes || [];
         this.restoreBgState(existingPlog);
-        // 从已保存的手账中恢复diaryIds
         if (existingPlog.diaryIds && existingPlog.diaryIds.length > 0) {
           this.diaryIdsFromParams = existingPlog.diaryIds;
         }
@@ -188,7 +215,6 @@ struct PlogEditorPage {
       }
     }
 
-    // 始终创建新手账，支持同一天创建多个手账
     const today = DateUtils.getToday();
     this.plog = {
       id: 0,
@@ -205,11 +231,13 @@ struct PlogEditorPage {
       patternSpacing: 20,
       customBgUri: '',
       elements: [],
+      drawStrokes: [],
       diaryIds: this.diaryIdsFromParams.length > 0 ? [...this.diaryIdsFromParams] : undefined,
       createdAt: Date.now(),
       thumbnail: ''
     };
     this.elements = [];
+    this.drawStrokes = [];
   }
 
   /** 从已保存的手账恢复背景设置到 @State */
@@ -228,16 +256,30 @@ struct PlogEditorPage {
 
   async loadTodayDiaryPosts(): Promise<void> {
     try {
-      const allPosts = await DiaryViewModel.getPostsByDate(DateUtils.getToday());
+      const date = this.plog?.date ?? DateUtils.getToday();
+      const allPostsByDate = await DiaryViewModel.getPostsByDate(date);
       // 优先使用路由传入的diaryIds，其次使用已保存plog中的diaryIds
       const diaryIds = this.diaryIdsFromParams.length > 0
         ? this.diaryIdsFromParams
         : (this.plog?.diaryIds ?? []);
       if (diaryIds.length > 0) {
         const idSet = new Set<number>(diaryIds);
-        this.todayDiaryPosts = allPosts.filter((post: DiaryPost) => idSet.has(post.id));
+        const matched = allPostsByDate.filter((post: DiaryPost) => idSet.has(post.id));
+        // 补充：不在当前日期查询结果中、但属于手账关联的条目（来自其他日期）
+        const matchedIdSet = new Set<number>(matched.map((p: DiaryPost) => p.id));
+        const missingIds = diaryIds.filter((id: number) => !matchedIdSet.has(id));
+        if (missingIds.length > 0) {
+          const allPosts = await DiaryViewModel.getAllPosts();
+          const extraPosts = allPosts.filter((post: DiaryPost) => {
+            const idSet2 = new Set<number>(missingIds);
+            return idSet2.has(post.id);
+          });
+          this.todayDiaryPosts = [...matched, ...extraPosts];
+        } else {
+          this.todayDiaryPosts = matched;
+        }
       } else {
-        this.todayDiaryPosts = allPosts;
+        this.todayDiaryPosts = allPostsByDate;
       }
     } catch (error) {
       console.error('加载随手记失败:', error);
@@ -438,9 +480,9 @@ struct PlogEditorPage {
     const w = ctx.width;
     const h = ctx.height;
     if (w === 0 || h === 0 || !this.eyedropperPixelMap) return;
-    const img = new ImageBitmap(this.eyedropperPixelMap);
     ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(img, 0, 0, w, h);
+    // CanvasRenderingContext2D.drawImage 支持直接传入 PixelMap
+    ctx.drawImage(this.eyedropperPixelMap, 0, 0, w, h);
   }
 
   /** 从 Canvas 指定坐标吸取颜色 */
@@ -464,6 +506,8 @@ struct PlogEditorPage {
       } else if (this.eyedropperTarget === 2) {
         this.textColor = pickedColor;
         this.applyTextPropsToSelected();
+      } else if (this.eyedropperTarget === 3) {
+        this.brushColor = pickedColor;
       }
       this.applyBgToPlog();
       this.showEyedropper = false;
@@ -488,6 +532,88 @@ struct PlogEditorPage {
     if (a === 270) return 2;              // Left (←)
     if (a === 315) return 5;              // BottomLeft (↙)
     return 0;
+  }
+
+  /** 保存当前状态到历史记录 */
+  saveHistory(): void {
+    if (this.historyIndex < this.historyStack.length - 1) {
+      this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
+    }
+    const snapshot: CanvasElement[] = this.elements.map(el => {
+      const copy: CanvasElement = {
+        type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+        rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+        fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+        fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+        textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+        lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+        italicAngle: el.italicAngle, _version: el._version,
+      };
+      return copy;
+    });
+    this.historyStack.push(snapshot);
+    if (this.historyStack.length > this.maxHistorySize) {
+      this.historyStack.shift();
+    } else {
+      this.historyIndex++;
+    }
+  }
+
+  /** 撤销 */
+  undo(): void {
+    if (this.historyIndex > 0) {
+      this.historyIndex--;
+      this.elements = this.historyStack[this.historyIndex].map(el => {
+        const copy: CanvasElement = {
+          type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+          rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+          fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+          fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+          textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+          lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+          italicAngle: el.italicAngle, _version: el._version,
+        };
+        return copy;
+      });
+      this.selectedElementIndex = -1;
+    }
+  }
+
+  /** 重做 */
+  redo(): void {
+    if (this.historyIndex < this.historyStack.length - 1) {
+      this.historyIndex++;
+      this.elements = this.historyStack[this.historyIndex].map(el => {
+        const copy: CanvasElement = {
+          type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+          rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+          fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+          fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+          textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+          lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+          italicAngle: el.italicAngle, _version: el._version,
+        };
+        return copy;
+      });
+      this.selectedElementIndex = -1;
+    }
+  }
+
+  /** 放大画布 */
+  zoomIn(): void {
+    this.canvasScale = Math.min(this.canvasScale + 0.2, 3.0);
+  }
+
+  /** 缩小画布 */
+  zoomOut(): void {
+    this.canvasScale = Math.max(this.canvasScale - 0.2, 0.5);
+  }
+
+  /** 重置缩放 */
+  resetZoom(): void {
+    this.canvasScale = 1.0;
+    this.canvasOffsetX = 0;
+    this.canvasOffsetY = 0;
   }
 
   /**
@@ -543,6 +669,7 @@ struct PlogEditorPage {
     }
 
     promptAction.showToast({ message: '已添加随手记' });
+    this.saveHistory();
   }
 
   /**
@@ -575,6 +702,7 @@ struct PlogEditorPage {
     };
     this.elements.push(element);
     this.activeToolTab = -1;
+    this.saveHistory();
   }
 
   /**
@@ -583,15 +711,312 @@ struct PlogEditorPage {
   addSticker(stickerUrl: string): void {
     const element: CanvasElement = {
       type: 'sticker',
-      x: 80 + (this.elements.length % 3) * 80,
-      y: 100 + Math.floor(this.elements.length / 3) * 80,
-      width: 60,
-      height: 60,
+      x: 80 + (this.elements.length % 3) * 40,
+      y: 100 + Math.floor(this.elements.length / 3) * 40,
+      width: 100,
+      height: 100,
       rotation: 0,
       content: stickerUrl,
       zIndex: this.elements.length
     };
     this.elements.push(element);
+    this.selectedElementIndex = this.elements.length - 1;
+    this.saveHistory();
+  }
+
+  /** 从相册选择图片作为贴纸 */
+  async pickStickerFromAlbum(): Promise<void> {
+    try {
+      const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+      photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      photoSelectOptions.maxSelectNumber = 1;
+      const photoViewPicker = new photoAccessHelper.PhotoViewPicker();
+      const result = await photoViewPicker.select(photoSelectOptions);
+      if (result && result.photoUris && result.photoUris.length > 0) {
+        this.addSticker(result.photoUris[0]);
+        promptAction.showToast({ message: '已添加图片贴纸' });
+      }
+    } catch (error) {
+      console.error('选择图片贴纸失败:', error);
+    }
+  }
+
+  /** 重绘所有已保存的笔画（Canvas onReady 或工具切换后调用） */
+  redrawAllStrokes(): void {
+    const ctx = this.drawingCanvasContext;
+    ctx.clearRect(0, 0, ctx.width, ctx.height);
+    for (const stroke of this.drawStrokes) {
+      if (!stroke.points || stroke.points.length === 0) continue;
+      const savedBrushType = this.brushType;
+      const savedBrushColor = this.brushColor;
+      const savedBrushThickness = this.brushThickness;
+      const savedBrushOpacity = this.brushOpacity;
+      this.brushType = stroke.brushType;
+      this.brushColor = stroke.brushColor;
+      this.brushThickness = stroke.brushThickness;
+      this.brushOpacity = stroke.brushOpacity;
+      if (stroke.points.length === 1) {
+        this.drawStrokePoint(stroke.points[0].x, stroke.points[0].y);
+      } else {
+        this.drawStrokePoint(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          this.drawStroke(stroke.points[i - 1].x, stroke.points[i - 1].y, stroke.points[i].x, stroke.points[i].y);
+        }
+      }
+      this.brushType = savedBrushType;
+      this.brushColor = savedBrushColor;
+      this.brushThickness = savedBrushThickness;
+      this.brushOpacity = savedBrushOpacity;
+    }
+  }
+
+  /** 画笔在 TouchDown 时画一个起始点（修复线条不连续问题） */
+  drawStrokePoint(x: number, y: number): void {
+    const ctx = this.drawingCanvasContext;
+    if (this.brushType === 0) {
+      // 橡皮：画一个擦除圆点
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.arc(x, y, this.brushThickness * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      const alpha = this.brushOpacity / 100;
+      ctx.fillStyle = this.brushColor;
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(x, y, this.brushThickness / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  /** 画笔绘制一段笔画 */
+  drawStroke(fromX: number, fromY: number, toX: number, toY: number): void {
+    const ctx = this.drawingCanvasContext;
+    if (this.brushType === 0) {
+      // 橡皮擦：用 destination-out 模式擦除
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = this.brushThickness * 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      // 设置透明度
+      const alpha = this.brushOpacity / 100;
+      // 根据画笔类型设置线条样式
+      if (this.brushType === 1) {
+        // 基础画笔：均匀线条
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 2) {
+        // 毛笔：根据速度变化粗细
+        const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+        const speed = Math.min(dist, 20);
+        const width = Math.max(2, this.brushThickness * 2 - speed * 0.3);
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 3) {
+        // 马克笔：扁宽笔触
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 2;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'bevel';
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 4) {
+        // 荧光笔：宽且半透明
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 3;
+        ctx.lineCap = 'square';
+        ctx.lineJoin = 'miter';
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 5) {
+        // 铅笔：细线带纹理感
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = Math.max(1, this.brushThickness * 0.5);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        // 添加纹理颗粒
+        for (let i = 0; i < 2; i++) {
+          const ox = (Math.random() - 0.5) * this.brushThickness;
+          const oy = (Math.random() - 0.5) * this.brushThickness;
+          ctx.globalAlpha = alpha * 0.3;
+          ctx.beginPath();
+          ctx.arc(toX + ox, toY + oy, 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (this.brushType === 6) {
+        // 蜡笔：粗糙厚实线条
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 1.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.beginPath();
+        ctx.moveTo(fromX + (Math.random() - 0.5) * 1.5, fromY + (Math.random() - 0.5) * 1.5);
+        ctx.lineTo(toX + (Math.random() - 0.5) * 1.5, toY + (Math.random() - 0.5) * 1.5);
+        ctx.stroke();
+      } else if (this.brushType === 7) {
+        // 水彩笔：柔和扩散效果
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        // 外层扩散
+        ctx.lineWidth = this.brushThickness * 3;
+        ctx.globalAlpha = alpha * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 8) {
+        // 喷枪：随机散布粒子
+        ctx.fillStyle = this.brushColor;
+        ctx.globalAlpha = alpha * 0.3;
+        const density = Math.max(10, this.brushThickness * 2);
+        const radius = this.brushThickness * 2;
+        for (let i = 0; i < density; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const r = Math.random() * radius;
+          const px = toX + Math.cos(angle) * r;
+          const py = toY + Math.sin(angle) * r;
+          ctx.beginPath();
+          ctx.arc(px, py, Math.random() * 1.5 + 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (this.brushType === 9) {
+        // 钢笔：细线带压感变化
+        const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+        const pressureWidth = Math.max(1, this.brushThickness * 0.6 + (1 - Math.min(dist / 30, 1)) * this.brushThickness * 0.4);
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = pressureWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 10) {
+        // 炭笔：粗糙浓黑、带颗粒
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 1.8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        // 炭笔颗粒
+        ctx.fillStyle = this.brushColor;
+        for (let i = 0; i < 5; i++) {
+          const ox = (Math.random() - 0.5) * this.brushThickness * 2;
+          const oy = (Math.random() - 0.5) * this.brushThickness * 2;
+          ctx.globalAlpha = alpha * (0.1 + Math.random() * 0.2);
+          ctx.beginPath();
+          ctx.arc(toX + ox, toY + oy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (this.brushType === 11) {
+        // 霓虹笔：发光效果
+        // 外发光
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness * 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        // 中层光晕
+        ctx.lineWidth = this.brushThickness * 2;
+        ctx.globalAlpha = alpha * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        // 核心亮线
+        ctx.lineWidth = this.brushThickness * 0.8;
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+      } else if (this.brushType === 12) {
+        // 点彩笔：排列圆点
+        ctx.fillStyle = this.brushColor;
+        ctx.globalAlpha = alpha * 0.8;
+        const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+        const dotSpacing = Math.max(3, this.brushThickness * 0.8);
+        const steps = Math.max(1, Math.floor(dist / dotSpacing));
+        for (let i = 0; i <= steps; i++) {
+          const t = steps > 0 ? i / steps : 0;
+          const px = fromX + (toX - fromX) * t;
+          const py = fromY + (toY - fromY) * t;
+          const dotSize = this.brushThickness * 0.4 + Math.random() * this.brushThickness * 0.3;
+          ctx.beginPath();
+          ctx.arc(px + (Math.random() - 0.5) * 2, py + (Math.random() - 0.5) * 2, dotSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (this.brushType === 13) {
+        // 虚线笔
+        ctx.strokeStyle = this.brushColor;
+        ctx.lineWidth = this.brushThickness;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.setLineDash([this.brushThickness * 2, this.brushThickness * 1.5]);
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.globalAlpha = 1.0;
+    }
   }
 
   /** 将文字属性面板的值应用到选中的文字元素 */
@@ -657,6 +1082,7 @@ struct PlogEditorPage {
     } else if (this.selectedElementIndex > index) {
       this.selectedElementIndex--;
     }
+    this.saveHistory();
   }
 
   /** 复制指定元素 */
@@ -688,6 +1114,7 @@ struct PlogEditorPage {
     };
     this.elements.push(clone);
     this.selectedElementIndex = this.elements.length - 1;
+    this.saveHistory();
   }
 
   /**
@@ -698,13 +1125,12 @@ struct PlogEditorPage {
 
     try {
       this.plog.elements = this.elements;
+      this.plog.drawStrokes = this.drawStrokes;
       this.applyBgToPlog();
-      // 确保diaryIds被保存
       if (this.diaryIdsFromParams.length > 0 && !this.plog.diaryIds) {
         this.plog.diaryIds = [...this.diaryIdsFromParams];
       }
 
-      // 生成缩略图
       await this.generateThumbnail();
 
       if (this.plog.id === 0) {
@@ -722,6 +1148,7 @@ struct PlogEditorPage {
           patternSpacing: this.plog.patternSpacing,
           customBgUri: this.plog.customBgUri,
           elements: this.plog.elements,
+          drawStrokes: this.plog.drawStrokes,
           diaryIds: this.plog.diaryIds,
           createdAt: this.plog.createdAt,
           thumbnail: this.plog.thumbnail
@@ -746,17 +1173,19 @@ struct PlogEditorPage {
    */
   async generateThumbnail(): Promise<void> {
     try {
+      const savedSelectionIndex = this.selectedElementIndex;
+      this.selectedElementIndex = -1;
+      
+      await new Promise<void>(resolve => setTimeout(resolve, 50));
+      
       const pixelMap: image.PixelMap = await componentSnapshot.get('plogCanvas');
-      // 缩放到缩略图尺寸
       const scale = 200 / Math.max(pixelMap.getImageInfoSync().size.width, 1);
       pixelMap.scaleSync(scale, scale);
-      // 编码为 PNG
       const imagePackerApi = image.createImagePacker();
       const packOpts: image.PackingOption = { format: 'image/png', quality: 80 };
       const data: ArrayBuffer = await imagePackerApi.packing(pixelMap, packOpts);
       imagePackerApi.release();
       pixelMap.release();
-      // 保存到应用缓存目录
       const context = getContext(this) as common.UIAbilityContext;
       const thumbnailDir = context.cacheDir + '/thumbnails';
       if (!fs.accessSync(thumbnailDir)) {
@@ -767,6 +1196,8 @@ struct PlogEditorPage {
       fs.writeSync(file.fd, data);
       fs.closeSync(file);
       this.plog!.thumbnail = thumbnailPath;
+      
+      this.selectedElementIndex = savedSelectionIndex;
     } catch (error) {
       console.error('生成缩略图失败:', error);
     }
@@ -832,10 +1263,9 @@ struct PlogEditorPage {
       // 保存
       if (this.plog) {
         this.plog.elements = this.elements;
+        this.plog.drawStrokes = this.drawStrokes;
         this.applyBgToPlog();
-        // 生成缩略图
         await this.generateThumbnail();
-        // 保存关联的随手记ID
         this.plog.diaryIds = materials.posts.map((post: DiaryPost) => post.id);
         if (this.plog.id === 0) {
           const insertParams: PlogInsertParams = {
@@ -852,6 +1282,7 @@ struct PlogEditorPage {
             patternSpacing: this.plog.patternSpacing,
             customBgUri: this.plog.customBgUri,
             elements: this.plog.elements,
+            drawStrokes: this.plog.drawStrokes,
             diaryIds: this.plog.diaryIds,
             createdAt: this.plog.createdAt,
             thumbnail: this.plog.thumbnail
@@ -887,13 +1318,7 @@ struct PlogEditorPage {
     .backgroundColor(this.activeToolTab === tabIndex ? '#FFF0E8' : Color.Transparent)
     .borderRadius(18)
     .onClick(() => {
-      if (tabIndex === 2) {
-        this.switchToolTab(tabIndex);
-      } else if (tabIndex === 4) {
-        promptAction.showToast({ message: '画笔功能开发中' });
-      } else {
-        this.switchToolTab(tabIndex);
-      }
+      this.switchToolTab(tabIndex);
     })
   }
 
@@ -1810,7 +2235,31 @@ struct PlogEditorPage {
     } else if (this.activeToolTab === 3) {
       // 贴纸详细设置
       Grid() {
-        ForEach(['⭐', '❤️', '🌸', '🎀', '✨', '🌈', '🌟', '💎', '🍀', '🦋', '🌙', '🎈'], (sticker: string) => {
+        // + 号按钮：从相册添加图片贴纸
+        GridItem() {
+          Column() {
+            Text('+')
+              .fontSize(28)
+              .fontColor('#999999')
+              .fontWeight(FontWeight.Bold)
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+          .borderWidth(2)
+          .borderStyle(BorderStyle.Dashed)
+          .borderColor('#CCCCCC')
+          .borderRadius(8)
+          .onClick(() => {
+            this.pickStickerFromAlbum();
+          })
+        }
+        .width(52)
+        .height(52)
+
+        ForEach(['⭐', '❤️', '🌸', '🎀', '✨', '🌈', '🌟', '💎', '🍀', '🦋', '🌙', '🎈',
+          '🌻', '🎶', '🦊', '🐱', '🐶', '🐻', '🍬', '🎨', '📖', '💡', '🔥', '☕',
+          '🎀', '💝', '🏡', '🌴', '🍄', '🐰', '🧸', '🍰', '🪄', '🎊', '💖', '⛅'], (sticker: string) => {
           GridItem() {
             Column() {
               Text(sticker)
@@ -1834,8 +2283,183 @@ struct PlogEditorPage {
       .rowsGap(8)
       .columnsGap(8)
       .width('100%')
-      .height(160)
+      .height(220)
       .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+    } else if (this.activeToolTab === 4) {
+      // 画笔详细设置
+      Scroll() {
+        Column({ space: 12 }) {
+          // 横向滚动画笔选择
+          Scroll() {
+            Row({ space: 8 }) {
+              ForEach([
+                { type: 0, label: '橡皮' },
+                { type: 1, label: '画笔' },
+                { type: 2, label: '毛笔' },
+                { type: 3, label: '马克笔' },
+                { type: 4, label: '荧光笔' },
+                { type: 5, label: '铅笔' },
+                { type: 6, label: '蜡笔' },
+                { type: 7, label: '水彩笔' },
+                { type: 8, label: '喷枪' },
+                { type: 9, label: '钢笔' },
+                { type: 10, label: '炭笔' },
+                { type: 11, label: '霓虹笔' },
+                { type: 12, label: '点彩笔' },
+                { type: 13, label: '虚线笔' }
+              ], (item: Record<string, Object>) => {
+                Text(item.label as string)
+                  .fontSize(13)
+                  .fontColor(this.brushType === (item.type as number)
+                    ? $r('app.color.primary_color')
+                    : $r('app.color.text_hint'))
+                  .fontWeight(this.brushType === (item.type as number) ? FontWeight.Medium : FontWeight.Normal)
+                  .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+                  .backgroundColor(this.brushType === (item.type as number) ? '#FFF0E8' : '#F5F5F5')
+                  .borderRadius(16)
+                  .border({
+                    width: this.brushType === (item.type as number) ? 1.5 : 0,
+                    color: $r('app.color.primary_color')
+                  })
+                  .onClick(() => {
+                    this.brushType = item.type as number;
+                  })
+              }, (item: Record<string, Object>) => (item.type as number).toString())
+            }
+            .padding({ left: 4, right: 4 })
+          }
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .width('100%')
+
+          // 分割线
+          Divider().color('#EEEEEE')
+
+          // 颜色选择（橡皮不显示）
+          if (this.brushType !== 0) {
+            Row({ space: 10 }) {
+              // 吸色笔
+              Column() {
+                Text('吸')
+                  .fontSize(14)
+                  .fontColor($r('app.color.primary_color'))
+                  .fontWeight(FontWeight.Medium)
+              }
+              .width(36)
+              .height(36)
+              .borderRadius(18)
+              .justifyContent(FlexAlign.Center)
+              .backgroundColor('#FFF0E8')
+              .border({ width: 1.5, color: $r('app.color.primary_color') })
+              .onClick(() => this.startEyedropper(3))
+
+              ForEach(['#333333', '#000000', '#FFFFFF', '#FF6B6B', '#4ECDC4', '#45B7D1',
+                '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A65', '#64B5F6', '#81C784'],
+                (color: string) => {
+                  Column()
+                    .width(32)
+                    .height(32)
+                    .backgroundColor(color)
+                    .borderRadius(16)
+                    .border({
+                      width: this.brushColor === color ? 2 : 0.5,
+                      color: this.brushColor === color ? $r('app.color.primary_color') : '#CCCCCC'
+                    })
+                    .onClick(() => {
+                      this.brushColor = color;
+                    })
+                }, (color: string) => color)
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+
+            // 色相滑块
+            Row() {
+              Text('色相')
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.brushColorHue, min: 0, max: 360, step: 1 })
+                .layoutWeight(1)
+                .selectedColor(this.hslToHex(this.brushColorHue, this.brushColorSaturation))
+                .onChange((value: number) => {
+                  this.brushColorHue = value;
+                  this.brushColor = this.hslToHex(this.brushColorHue, this.brushColorSaturation);
+                })
+              Text(`${Math.round(this.brushColorHue)}°`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(36)
+            }
+            .width('100%')
+
+            // 饱和度滑块
+            Row() {
+              Text('饱和度')
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.brushColorSaturation, min: 0, max: 100, step: 1 })
+                .layoutWeight(1)
+                .selectedColor(this.hslToHex(this.brushColorHue, this.brushColorSaturation))
+                .onChange((value: number) => {
+                  this.brushColorSaturation = value;
+                  this.brushColor = this.hslToHex(this.brushColorHue, this.brushColorSaturation);
+                })
+              Text(`${Math.round(this.brushColorSaturation)}%`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(36)
+            }
+            .width('100%')
+          }
+
+          // 粗细滑块
+          Row() {
+            Text('粗细')
+              .fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary'))
+              .width(40)
+            Slider({ value: this.brushThickness, min: 1, max: 50, step: 1 })
+              .layoutWeight(1)
+              .selectedColor($r('app.color.primary_color'))
+              .onChange((value: number) => {
+                this.brushThickness = value;
+              })
+            Text(`${Math.round(this.brushThickness)}`)
+              .fontSize($r('app.float.font_size_xs'))
+              .fontColor($r('app.color.text_hint'))
+              .width(36)
+          }
+          .width('100%')
+
+          // 透明度滑块（橡皮不显示）
+          if (this.brushType !== 0) {
+            Row() {
+              Text('透明度')
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary'))
+                .width(40)
+              Slider({ value: this.brushOpacity, min: 0, max: 100, step: 1 })
+                .layoutWeight(1)
+                .onChange((value: number) => {
+                  this.brushOpacity = value;
+                })
+              Text(`${Math.round(this.brushOpacity)}%`)
+                .fontSize($r('app.float.font_size_xs'))
+                .fontColor($r('app.color.text_hint'))
+                .width(36)
+            }
+            .width('100%')
+          }
+
+
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+      }
+      .width('100%')
+      .scrollBar(BarState.Off)
     }
   }
 
@@ -1875,12 +2499,22 @@ struct PlogEditorPage {
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
-      // 添加按钮
-      Button('添加')
-        .fontSize($r('app.float.font_size_sm'))
-        .height(32)
-        .backgroundColor($r('app.color.primary_color'))
-        .onClick(() => this.addDiaryToCanvas(post))
+      Column() {
+        Text('＋')
+          .fontSize(18)
+          .fontColor($r('app.color.primary_color'))
+          .fontWeight(FontWeight.Medium)
+      }
+      .width(32)
+      .height(32)
+      .justifyContent(FlexAlign.Center)
+      .border({
+        width: 1.5,
+        color: $r('app.color.primary_color'),
+        style: BorderStyle.Dashed
+      })
+      .borderRadius(4)
+      .onClick(() => this.addDiaryToCanvas(post))
     }
     .width('100%')
     .padding(12)
@@ -1890,7 +2524,7 @@ struct PlogEditorPage {
   }
 
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.Bottom }) {
       Column() {
         // 顶部栏
         Row() {
@@ -1906,6 +2540,37 @@ struct PlogEditorPage {
 
           Blank()
 
+          // 撤销/重做按钮组
+          Row({ space: 4 }) {
+            Button() {
+              SymbolGlyph($r('sys.symbol.arrow_counterclockwise'))
+                .fontSize(18)
+                .fontColor([this.historyIndex > 0
+                  ? $r('app.color.text_primary')
+                  : $r('app.color.text_hint')])
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(Color.Transparent)
+            .enabled(this.historyIndex > 0)
+            .onClick(() => this.undo())
+
+            Button() {
+              SymbolGlyph($r('sys.symbol.arrow_clockwise'))
+                .fontSize(18)
+                .fontColor([this.historyIndex < this.historyStack.length - 1
+                  ? $r('app.color.text_primary')
+                  : $r('app.color.text_hint')])
+            }
+            .width(36)
+            .height(36)
+            .backgroundColor(Color.Transparent)
+            .enabled(this.historyIndex < this.historyStack.length - 1)
+            .onClick(() => this.redo())
+          }
+
+          Blank()
+
           Button('保存')
             .fontSize($r('app.float.font_size_base'))
             .fontColor($r('app.color.primary_color'))
@@ -1918,10 +2583,12 @@ struct PlogEditorPage {
         .padding({ left: 12, right: 16 })
         .alignItems(VerticalAlign.Center)
 
-        // 画布区域
+        // 画布区域（铺满剩余空间）
         Stack() {
-          // 画布底色
-          if (this.bgType === 'custom' && this.customBgUri) {
+          // 画布内容层（可缩放和平移）
+          Stack() {
+            // 画布底色
+            if (this.bgType === 'custom' && this.customBgUri) {
             Image(this.customBgUri)
               .width('100%')
               .height('100%')
@@ -1961,19 +2628,155 @@ struct PlogEditorPage {
           // 画布元素
           ForEach(this.elements, (element: CanvasElement, index: number) => {
             if (element.type === 'image' || element.type === 'sticker') {
-              Image(element.content)
-                .width(element.width)
-                .height(element.height)
-                .position({ x: element.x, y: element.y })
-                .rotate({ angle: element.rotation })
-                .zIndex(element.zIndex)
-                .border({
-                  width: this.selectedElementIndex === index ? 2 : 0,
-                  color: $r('app.color.primary_color')
-                })
-                .onClick(() => {
-                  this.selectedElementIndex = index;
-                })
+              Stack() {
+                // 区分：图片路径用 Image，emoji 贴纸用 Text
+                if (element.content.startsWith('file://') || element.content.startsWith('content://') ||
+                  element.content.startsWith('http') || element.content.startsWith('/')) {
+                  Image(element.content)
+                    .width('100%')
+                    .height('100%')
+                    .objectFit(ImageFit.Contain)
+                } else {
+                  Text(element.content)
+                    .fontSize(Math.min(element.width, element.height) * 0.7)
+                    .width('100%')
+                    .height('100%')
+                    .textAlign(TextAlign.Center)
+                }
+
+                // 选中时的边框（白色虚线）
+                if (this.selectedElementIndex === index) {
+                  Column()
+                    .width('100%')
+                    .height('100%')
+                    .border({
+                      width: 3,
+                      color: Color.White,
+                      style: BorderStyle.Dashed
+                    })
+                    .borderRadius(4)
+                    .hitTestBehavior(HitTestMode.None)
+                }
+
+                // 选中时的控制按钮
+                if (this.selectedElementIndex === index) {
+                  // 删除按钮（右上角）×
+                  Column() {
+                    Text('×')
+                      .fontSize(14)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: this.elements[index].width - 11, y: -11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .onClick(() => {
+                    this.deleteElement(index);
+                  })
+
+                  // 复制按钮（左下角）+1
+                  Column() {
+                    Text('+1')
+                      .fontSize(9)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: -11, y: this.elements[index].height - 11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .onClick(() => {
+                    this.duplicateElement(index);
+                  })
+
+                  // 缩放手柄（右下角）↻
+                  Column() {
+                    Text('↻')
+                      .fontSize(14)
+                      .fontColor('#333333')
+                      .fontWeight(FontWeight.Bold)
+                      .textAlign(TextAlign.Center)
+                  }
+                  .width(22)
+                  .height(22)
+                  .backgroundColor(Color.White)
+                  .borderRadius(11)
+                  .position({ x: this.elements[index].width - 11, y: this.elements[index].height - 11 })
+                  .justifyContent(FlexAlign.Center)
+                  .zIndex(100)
+                  .gesture(
+                    PanGesture()
+                      .onActionStart(() => {
+                        this.resizeStartWidth = this.elements[index].width;
+                        this.resizeStartHeight = this.elements[index].height;
+                      })
+                      .onActionUpdate((event: GestureEvent) => {
+                        const newWidth = Math.max(40, this.resizeStartWidth + event.offsetX);
+                        const newHeight = Math.max(40, this.resizeStartHeight + event.offsetY);
+                        const old = this.elements[index];
+                        this.elements[index] = {
+                          type: old.type, x: old.x, y: old.y, width: newWidth, height: newHeight,
+                          rotation: old.rotation, content: old.content, zIndex: old.zIndex,
+                          fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                          fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                          verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                          letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                          fontFamily: old.fontFamily,
+                          _version: (old._version ?? 0) + 1,
+                        };
+                        this.elements = [...this.elements];
+                      })
+                      .onActionEnd(() => {
+                        this.elements = [...this.elements];
+                      })
+                  )
+                }
+              }
+              .position({ x: this.elements[index].x, y: this.elements[index].y })
+              .width(this.elements[index].width)
+              .height(this.elements[index].height)
+              .zIndex(element.zIndex)
+              .rotate({ angle: element.rotation })
+              .gesture(
+                GestureGroup(GestureMode.Exclusive,
+                  PanGesture({ fingers: 1, distance: 5 })
+                    .onActionStart(() => {
+                      this.dragStartX = this.elements[index].x;
+                      this.dragStartY = this.elements[index].y;
+                      this.selectedElementIndex = index;
+                    })
+                    .onActionUpdate((event: GestureEvent) => {
+                      const old = this.elements[index];
+                      this.elements[index] = {
+                        type: old.type, x: this.dragStartX + event.offsetX, y: this.dragStartY + event.offsetY,
+                        width: old.width, height: old.height, rotation: old.rotation, content: old.content,
+                        zIndex: old.zIndex, fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                        fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                        verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                        letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                        fontFamily: old.fontFamily,
+                        _version: (old._version ?? 0) + 1,
+                      };
+                      this.elements = [...this.elements];
+                    })
+                    .onActionEnd(() => {
+                      this.elements = [...this.elements];
+                    }),
+                  TapGesture({ count: 1 })
+                    .onAction(() => {
+                      this.selectedElementIndex = index;
+                    })
+                )
+              )
             } else if (element.type === 'text') {
               Stack() {
                 if (this.editingTextIndex === index) {
@@ -2198,105 +3001,237 @@ struct PlogEditorPage {
               .rotate({ angle: element.rotation })
             }
           }, (element: CanvasElement, index: number) => `${index}_${element._version ?? 0}`)
+
+          // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+          Canvas(this.drawingCanvasContext)
+            .width('100%')
+            .height('100%')
+            .id('drawingCanvas')
+            .hitTestBehavior(this.activeToolTab === 4 ? HitTestMode.Default : HitTestMode.None)
+            .onReady(() => {
+              this.canvasReady = true;
+              this.redrawAllStrokes();
+            })
+            .onTouch((event: TouchEvent) => {
+              if (this.activeToolTab !== 4) return;
+              if (event.type === TouchType.Down && event.touches.length > 0) {
+                const x = event.touches[0].x;
+                const y = event.touches[0].y;
+                this.drawLastX = x;
+                this.drawLastY = y;
+                this.isDrawing = true;
+                // 开始新笔画
+                this.currentStroke = {
+                  brushType: this.brushType,
+                  brushColor: this.brushColor,
+                  brushThickness: this.brushThickness,
+                  brushOpacity: this.brushOpacity,
+                  points: [{ x, y }]
+                };
+                // 在 TouchDown 时画一个起始点（修复不连续问题）
+                this.drawStrokePoint(x, y);
+              } else if (event.type === TouchType.Move && event.touches.length > 0 && this.isDrawing) {
+                const x = event.touches[0].x;
+                const y = event.touches[0].y;
+                this.drawStroke(this.drawLastX, this.drawLastY, x, y);
+                // 记录点到当前笔画
+                if (this.currentStroke) {
+                  this.currentStroke.points.push({ x, y });
+                }
+                this.drawLastX = x;
+                this.drawLastY = y;
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.isDrawing = false;
+                // 保存当前笔画
+                if (this.currentStroke && this.currentStroke.points.length > 0) {
+                  this.drawStrokes = [...this.drawStrokes, this.currentStroke];
+                  this.currentStroke = null;
+                }
+              }
+            })
+          }
+          .width('100%')
+          .height('100%')
+          .scale({ x: this.canvasScale, y: this.canvasScale })
+          .translate({ x: this.canvasOffsetX, y: this.canvasOffsetY })
+          .gesture(
+            PanGesture()
+              .onActionStart(() => {
+                this.panStartOffsetX = this.canvasOffsetX;
+                this.panStartOffsetY = this.canvasOffsetY;
+              })
+              .onActionUpdate((event: GestureEvent) => {
+                if (this.activeToolTab !== 4) {
+                  this.canvasOffsetX = this.panStartOffsetX + event.offsetX;
+                  this.canvasOffsetY = this.panStartOffsetY + event.offsetY;
+                }
+              })
+          )
+
+          // 右上角缩放控制条：放大镜-  100%  放大镜+
+          Row({ space: 8 }) {
+            // 缩小按钮
+            Button() {
+              Row({ space: 2 }) {
+                SymbolGlyph($r('sys.symbol.magnifyingglass'))
+                  .fontSize(16)
+                  .fontColor([this.canvasScale > 0.5
+                    ? $r('app.color.text_primary')
+                    : $r('app.color.text_hint')])
+                Text('−')
+                  .fontSize(18)
+                  .fontColor(this.canvasScale > 0.5
+                    ? $r('app.color.text_primary')
+                    : $r('app.color.text_hint'))
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .width(52)
+            .height(36)
+            .backgroundColor($r('app.color.card_background'))
+            .borderRadius(18)
+            .enabled(this.canvasScale > 0.5)
+            .onClick(() => this.zoomOut())
+
+            // 百分比显示
+            Text(`${Math.round(this.canvasScale * 100)}%`)
+              .fontSize(14)
+              .fontColor($r('app.color.text_primary'))
+              .fontWeight(FontWeight.Medium)
+              .width(50)
+              .textAlign(TextAlign.Center)
+
+            // 放大按钮
+            Button() {
+              Row({ space: 2 }) {
+                SymbolGlyph($r('sys.symbol.magnifyingglass'))
+                  .fontSize(16)
+                  .fontColor([this.canvasScale < 3.0
+                    ? $r('app.color.text_primary')
+                    : $r('app.color.text_hint')])
+                Text('＋')
+                  .fontSize(18)
+                  .fontColor(this.canvasScale < 3.0
+                    ? $r('app.color.text_primary')
+                    : $r('app.color.text_hint'))
+                  .fontWeight(FontWeight.Medium)
+              }
+            }
+            .width(52)
+            .height(36)
+            .backgroundColor($r('app.color.card_background'))
+            .borderRadius(18)
+            .enabled(this.canvasScale < 3.0)
+            .onClick(() => this.zoomIn())
+          }
+          .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+          .backgroundColor($r('app.color.card_background'))
+          .borderRadius(20)
+          .shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: 2 })
+          .position({ x: '50%', y: 16 })
+          .translate({ x: '-50%', y: 0 })
+          .zIndex(200)
         }
         .width('100%')
         .layoutWeight(1)
         .padding(16)
+        .clip(true)
         .id('plogCanvas')
-
-        // 底部综合面板（主工具栏 + 子工具栏 + 详细设置）
-        Column() {
-          // 展开区域：详细设置 + 子工具栏
-          if (this.panelExpanded && this.activeToolTab >= 0) {
-            Column() {
-              // 下拉指示横线（点击收起/展开）
-              Row() {
-                Column()
-                  .width(36)
-                  .height(4)
-                  .borderRadius(2)
-                  .backgroundColor('#CCCCCC')
-              }
-              .width('100%')
-              .height(20)
-              .justifyContent(FlexAlign.Center)
-              .onClick(() => this.togglePanel())
-
-              // 详细设置内容区
-              this.DetailContent()
-
-              // 子工具栏（文字/背景工具有）
-              if (this.activeToolTab === 2 || this.activeToolTab === 1) {
-                Row() {
-                  ForEach(this.activeToolTab === 1 ? this.bgSubTools : this.textSubTools,
-                    (tool: string, idx: number) => {
-                      this.SubToolButton(tool, idx)
-                    }, (tool: string, idx: number) => idx.toString())
-                }
-                .width('100%')
-                .height(40)
-                .justifyContent(FlexAlign.SpaceEvenly)
-                .border({
-                  width: { top: 0.5 },
-                  color: $r('app.color.divider_color')
-                })
-              }
-            }
-            .width('100%')
-            .backgroundColor($r('app.color.background_color'))
-            .borderRadius({ topLeft: 16, topRight: 16 })
-            .shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: -2 })
-            .transition(TransitionEffect.asymmetric(
-              TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 20 })),
-              TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 20 }))
-            ).animation({ duration: 280, curve: Curve.EaseInOut }))
-          }
-
-          // 主工具栏（始终显示）
-          Row() {
-            this.MainToolButton('随手记', 0)
-
-            Divider()
-              .width(0.5)
-              .height(36)
-              .color($r('app.color.divider_color'))
-
-            this.MainToolButton('背景', 1)
-
-            Divider()
-              .width(0.5)
-              .height(36)
-              .color($r('app.color.divider_color'))
-
-            this.MainToolButton('文字', 2)
-
-            Divider()
-              .width(0.5)
-              .height(36)
-              .color($r('app.color.divider_color'))
-
-            this.MainToolButton('贴纸', 3)
-
-            Divider()
-              .width(0.5)
-              .height(36)
-              .color($r('app.color.divider_color'))
-
-            this.MainToolButton('画笔', 4)
-          }
-          .width('100%')
-          .height(56)
-          .backgroundColor($r('app.color.card_background'))
-          .border({
-            width: { top: this.panelExpanded && this.activeToolTab >= 0 ? 0 : 0.5 },
-            color: $r('app.color.divider_color')
-          })
-        }
-        .width('100%')
       }
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.background_color'))
+
+      // 底部工具栏悬浮面板（叠加在画布上方）
+      Column() {
+        // 展开区域：详细设置 + 子工具栏
+        if (this.panelExpanded && this.activeToolTab >= 0) {
+          Column() {
+            // 下拉指示横线（点击收起/展开）
+            Row() {
+              Column()
+                .width(36)
+                .height(4)
+                .borderRadius(2)
+                .backgroundColor('#CCCCCC')
+            }
+            .width('100%')
+            .height(20)
+            .justifyContent(FlexAlign.Center)
+            .onClick(() => this.togglePanel())
+
+            // 详细设置内容区
+            this.DetailContent()
+
+            // 子工具栏（文字/背景工具有）
+            if (this.activeToolTab === 2 || this.activeToolTab === 1) {
+              Row() {
+                ForEach(this.activeToolTab === 1 ? this.bgSubTools : this.textSubTools,
+                  (tool: string, idx: number) => {
+                    this.SubToolButton(tool, idx)
+                  }, (tool: string, idx: number) => idx.toString())
+              }
+              .width('100%')
+              .height(40)
+              .justifyContent(FlexAlign.SpaceEvenly)
+              .border({
+                width: { top: 0.5 },
+                color: $r('app.color.divider_color')
+              })
+            }
+          }
+          .width('100%')
+          .backgroundColor($r('app.color.background_color'))
+          .borderRadius({ topLeft: 16, topRight: 16 })
+          .shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: -2 })
+          .transition(TransitionEffect.asymmetric(
+            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 20 })),
+            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 20 }))
+          ).animation({ duration: 280, curve: Curve.EaseInOut }))
+        }
+
+        // 主工具栏（始终显示）
+        Row() {
+          this.MainToolButton('随手记', 0)
+
+          Divider()
+            .width(0.5)
+            .height(36)
+            .color($r('app.color.divider_color'))
+
+          this.MainToolButton('背景', 1)
+
+          Divider()
+            .width(0.5)
+            .height(36)
+            .color($r('app.color.divider_color'))
+
+          this.MainToolButton('文字', 2)
+
+          Divider()
+            .width(0.5)
+            .height(36)
+            .color($r('app.color.divider_color'))
+
+          this.MainToolButton('贴纸', 3)
+
+          Divider()
+            .width(0.5)
+            .height(36)
+            .color($r('app.color.divider_color'))
+
+          this.MainToolButton('画笔', 4)
+        }
+        .width('100%')
+        .height(56)
+        .backgroundColor($r('app.color.card_background'))
+        .border({
+          width: { top: this.panelExpanded && this.activeToolTab >= 0 ? 0 : 0.5 },
+          color: $r('app.color.divider_color')
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
 
       // 取色器覆盖层
       if (this.showEyedropper) {

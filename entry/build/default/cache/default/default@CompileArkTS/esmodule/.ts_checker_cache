@@ -97,7 +97,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets": {
-      "mtimeMs": 1780634669573.543,
+      "mtimeMs": 1780750796110.525,
       "children": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.data.relationalStore.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.app.ability.common.d.ts",
@@ -122,7 +122,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\PreferencesUtil.ets": {
-      "mtimeMs": 1780468943488.3665,
+      "mtimeMs": 1780760139408.2393,
       "children": [
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.data.preferences.d.ts",
         "F:\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\@ohos.app.ability.common.d.ts",
@@ -132,7 +132,8 @@
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\entryability\\EntryAbility.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\SettingPage.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets",
-        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\CategoryPage.ets"
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\CategoryPage.ets",
+        "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets"
       ],
       "error": false
     },
@@ -1699,7 +1700,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts": {
-      "mtimeMs": 1780667374826.8645,
+      "mtimeMs": 1780750714737.3877,
       "children": [],
       "parent": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\common\\database\\RDBStoreUtil.ets",
@@ -1870,7 +1871,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\HomePage.ets": {
-      "mtimeMs": 1780589188786.2114,
+      "mtimeMs": 1780762950256.536,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\components\\calendar\\WeekCalendar.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\components\\calendar\\MonthCalendar.ets",
@@ -1999,7 +2000,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogEditorPage.ets": {
-      "mtimeMs": 1780669743537.0356,
+      "mtimeMs": 1780762950202.5789,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\DiaryViewModel.ets",
@@ -2026,7 +2027,7 @@
       ]
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogGalleryPage.ets": {
-      "mtimeMs": 1780669970482.9084,
+      "mtimeMs": 1780762950009.58,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts",
@@ -4128,7 +4129,7 @@
       "error": false
     },
     "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\pages\\PlogPreviewPage.ets": {
-      "mtimeMs": 1780668732377.0918,
+      "mtimeMs": 1780763711546.5806,
       "children": [
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\viewmodel\\PlogViewModel.ets",
         "F:\\harmonyOS\\Today-todo\\entry\\src\\main\\ets\\model\\PlogCanvas.ts",

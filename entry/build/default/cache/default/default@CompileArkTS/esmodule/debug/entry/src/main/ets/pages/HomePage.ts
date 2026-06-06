@@ -543,7 +543,25 @@ class HomePage extends ViewPU {
         await PreferencesUtil.saveCollections(this.collections);
         this.newCollectionName = '';
         this.showNewCollectionDialog = false;
-        promptAction.showToast({ message: '合集创建成功' });
+        // 自动将选中的随手记添加到新建的合集中
+        if (this.selectedMomentIds.size > 0) {
+            try {
+                for (const id of this.selectedMomentIds) {
+                    await DiaryViewModel.updatePostCategory(id, name);
+                }
+                this.selectedMomentIds.clear();
+                this.isMultiSelectMode = false;
+                await this.loadMoments();
+                promptAction.showToast({ message: '合集创建成功并已添加记录' });
+            }
+            catch (error) {
+                console.error('添加到合集失败:', error);
+                promptAction.showToast({ message: '合集创建成功但添加失败' });
+            }
+        }
+        else {
+            promptAction.showToast({ message: '合集创建成功' });
+        }
     }
     // ==================== Todo 方法 ====================
     async loadTodos(): Promise<void> {
@@ -923,7 +941,7 @@ class HomePage extends ViewPU {
                 {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         if (isInitialRender) {
-                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 511, col: 11 });
+                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 528, col: 11 });
                             ViewPU.create(componentCall);
                             let paramsLambda = () => {
                                 return {};
@@ -1020,7 +1038,7 @@ class HomePage extends ViewPU {
                         currentWeek: this.currentWeek,
                         selectedDate: this.selectedDate,
                         onDateSelected: (date: string) => this.onDateSelected(date)
-                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 581, col: 7 });
+                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 598, col: 7 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
                         return {
@@ -1059,7 +1077,7 @@ class HomePage extends ViewPU {
                                         this.onDateSelected(date);
                                         this.toggleCalendar();
                                     }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 589, col: 9 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 606, col: 9 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
@@ -1172,7 +1190,7 @@ class HomePage extends ViewPU {
                                     onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
                                     onDelete: (id: number) => { this.deleteTodo(id); },
                                     onReorder: (fromIndex: number, toIndex: number) => { }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 642, col: 9 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 659, col: 9 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
@@ -2084,28 +2102,63 @@ class HomePage extends ViewPU {
         }, Blank);
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            // 添加位置（底部灰色框打底）
-            Row.create();
-            // 添加位置（底部灰色框打底）
+            // 添加位置（可输入的文字框）
+            Row.create({ space: 8 });
+            // 添加位置（可输入的文字框）
             Row.width('100%');
-            // 添加位置（底部灰色框打底）
-            Row.padding({ left: 12, right: 12, top: 12, bottom: 12 });
-            // 添加位置（底部灰色框打底）
+            // 添加位置（可输入的文字框）
+            Row.height(44);
+            // 添加位置（可输入的文字框）
+            Row.padding({ left: 12, right: 8, top: 4, bottom: 4 });
+            // 添加位置（可输入的文字框）
             Row.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            // 添加位置（底部灰色框打底）
+            // 添加位置（可输入的文字框）
             Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            // 添加位置（底部灰色框打底）
-            Row.onClick(() => {
-                this.newPostLocation = '此刻位置';
-            });
+            // 添加位置（可输入的文字框）
+            Row.alignItems(VerticalAlign.Center);
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create(this.newPostLocation ? `📍 ${this.newPostLocation}` : '添加位置');
+            Text.create('📍');
             Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor(this.newPostLocation ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
-        // 添加位置（底部灰色框打底）
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '添加位置', text: this.newPostLocation });
+            TextInput.layoutWeight(1);
+            TextInput.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.placeholderColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(Color.Transparent);
+            TextInput.padding(0);
+            TextInput.borderRadius(0);
+            TextInput.onChange((value: string) => { this.newPostLocation = value; });
+        }, TextInput);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.newPostLocation) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Button.createWithChild();
+                        Button.width(24);
+                        Button.height(24);
+                        Button.backgroundColor(Color.Transparent);
+                        Button.onClick(() => { this.newPostLocation = ''; });
+                    }, Button);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        SymbolGlyph.fontSize(12);
+                        SymbolGlyph.fontColor([{ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                    }, SymbolGlyph);
+                    Button.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        // 添加位置（可输入的文字框）
         Row.pop();
         Column.pop();
     }

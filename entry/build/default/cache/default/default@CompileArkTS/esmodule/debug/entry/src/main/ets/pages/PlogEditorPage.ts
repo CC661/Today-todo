@@ -43,6 +43,19 @@ interface PlogEditorPage_Params {
     resizeStartHeight?: number;
     dragStartX?: number;
     dragStartY?: number;
+    brushType?: number;
+    brushColor?: string;
+    brushColorHue?: number;
+    brushColorSaturation?: number;
+    brushThickness?: number;
+    brushOpacity?: number;
+    isDrawing?: boolean;
+    drawLastX?: number;
+    drawLastY?: number;
+    drawingCanvasContext?: CanvasRenderingContext2D;
+    drawStrokes?: DrawStroke[];
+    currentStroke?: DrawStroke | null;
+    canvasReady?: boolean;
     textFontStyle?: TextStyle;
     textFontSize?: number;
     textShadowOpacity?: number;
@@ -58,11 +71,19 @@ interface PlogEditorPage_Params {
     textFontWeight?: number;
     textItalicAngle?: number;
     newTextContent?: string;
+    historyStack?: CanvasElement[][];
+    historyIndex?: number;
+    maxHistorySize?: number;
+    canvasScale?: number;
+    canvasOffsetX?: number;
+    canvasOffsetY?: number;
+    panStartOffsetX?: number;
+    panStartOffsetY?: number;
     fontStyleMap?: Record<string, string>;
 }
 import PlogViewModel from "@normalized:N&&&entry/src/main/ets/viewmodel/PlogViewModel&";
 import DiaryViewModel from "@normalized:N&&&entry/src/main/ets/viewmodel/DiaryViewModel&";
-import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection } from '../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement, BgType, PatternType, TextStyle, TextDirection, DrawStroke } from '../model/PlogCanvas';
 import type { DiaryPost } from '../model/DiaryPost';
 import type { TodoItem } from '../model/TodoItem';
 import type { PlogInsertParams } from '../common/database/RDBStoreUtil';
@@ -147,6 +168,19 @@ class PlogEditorPage extends ViewPU {
         this.resizeStartHeight = 0;
         this.dragStartX = 0;
         this.dragStartY = 0;
+        this.__brushType = new ObservedPropertySimplePU(1, this, "brushType");
+        this.__brushColor = new ObservedPropertySimplePU('#333333', this, "brushColor");
+        this.__brushColorHue = new ObservedPropertySimplePU(0, this, "brushColorHue");
+        this.__brushColorSaturation = new ObservedPropertySimplePU(0, this, "brushColorSaturation");
+        this.__brushThickness = new ObservedPropertySimplePU(4, this, "brushThickness");
+        this.__brushOpacity = new ObservedPropertySimplePU(100, this, "brushOpacity");
+        this.__isDrawing = new ObservedPropertySimplePU(false, this, "isDrawing");
+        this.drawLastX = 0;
+        this.drawLastY = 0;
+        this.drawingCanvasContext = new CanvasRenderingContext2D(this.settings);
+        this.__drawStrokes = new ObservedPropertyObjectPU([], this, "drawStrokes");
+        this.currentStroke = null;
+        this.canvasReady = false;
         this.__textFontStyle = new ObservedPropertySimplePU('normal', this, "textFontStyle");
         this.__textFontSize = new ObservedPropertySimplePU(16, this, "textFontSize");
         this.__textShadowOpacity = new ObservedPropertySimplePU(0, this, "textShadowOpacity");
@@ -162,6 +196,14 @@ class PlogEditorPage extends ViewPU {
         this.__textFontWeight = new ObservedPropertySimplePU(400, this, "textFontWeight");
         this.__textItalicAngle = new ObservedPropertySimplePU(0, this, "textItalicAngle");
         this.__newTextContent = new ObservedPropertySimplePU('', this, "newTextContent");
+        this.__historyStack = new ObservedPropertyObjectPU([], this, "historyStack");
+        this.__historyIndex = new ObservedPropertySimplePU(-1, this, "historyIndex");
+        this.maxHistorySize = 50;
+        this.__canvasScale = new ObservedPropertySimplePU(1.0, this, "canvasScale");
+        this.__canvasOffsetX = new ObservedPropertySimplePU(0, this, "canvasOffsetX");
+        this.__canvasOffsetY = new ObservedPropertySimplePU(0, this, "canvasOffsetY");
+        this.panStartOffsetX = 0;
+        this.panStartOffsetY = 0;
         this.fontStyleMap = {
             'normal': '',
             'handwrite': 'LXGWWenKaiLite',
@@ -307,6 +349,45 @@ class PlogEditorPage extends ViewPU {
         if (params.dragStartY !== undefined) {
             this.dragStartY = params.dragStartY;
         }
+        if (params.brushType !== undefined) {
+            this.brushType = params.brushType;
+        }
+        if (params.brushColor !== undefined) {
+            this.brushColor = params.brushColor;
+        }
+        if (params.brushColorHue !== undefined) {
+            this.brushColorHue = params.brushColorHue;
+        }
+        if (params.brushColorSaturation !== undefined) {
+            this.brushColorSaturation = params.brushColorSaturation;
+        }
+        if (params.brushThickness !== undefined) {
+            this.brushThickness = params.brushThickness;
+        }
+        if (params.brushOpacity !== undefined) {
+            this.brushOpacity = params.brushOpacity;
+        }
+        if (params.isDrawing !== undefined) {
+            this.isDrawing = params.isDrawing;
+        }
+        if (params.drawLastX !== undefined) {
+            this.drawLastX = params.drawLastX;
+        }
+        if (params.drawLastY !== undefined) {
+            this.drawLastY = params.drawLastY;
+        }
+        if (params.drawingCanvasContext !== undefined) {
+            this.drawingCanvasContext = params.drawingCanvasContext;
+        }
+        if (params.drawStrokes !== undefined) {
+            this.drawStrokes = params.drawStrokes;
+        }
+        if (params.currentStroke !== undefined) {
+            this.currentStroke = params.currentStroke;
+        }
+        if (params.canvasReady !== undefined) {
+            this.canvasReady = params.canvasReady;
+        }
         if (params.textFontStyle !== undefined) {
             this.textFontStyle = params.textFontStyle;
         }
@@ -352,6 +433,30 @@ class PlogEditorPage extends ViewPU {
         if (params.newTextContent !== undefined) {
             this.newTextContent = params.newTextContent;
         }
+        if (params.historyStack !== undefined) {
+            this.historyStack = params.historyStack;
+        }
+        if (params.historyIndex !== undefined) {
+            this.historyIndex = params.historyIndex;
+        }
+        if (params.maxHistorySize !== undefined) {
+            this.maxHistorySize = params.maxHistorySize;
+        }
+        if (params.canvasScale !== undefined) {
+            this.canvasScale = params.canvasScale;
+        }
+        if (params.canvasOffsetX !== undefined) {
+            this.canvasOffsetX = params.canvasOffsetX;
+        }
+        if (params.canvasOffsetY !== undefined) {
+            this.canvasOffsetY = params.canvasOffsetY;
+        }
+        if (params.panStartOffsetX !== undefined) {
+            this.panStartOffsetX = params.panStartOffsetX;
+        }
+        if (params.panStartOffsetY !== undefined) {
+            this.panStartOffsetY = params.panStartOffsetY;
+        }
         if (params.fontStyleMap !== undefined) {
             this.fontStyleMap = params.fontStyleMap;
         }
@@ -387,6 +492,14 @@ class PlogEditorPage extends ViewPU {
         this.__patternSpacing.purgeDependencyOnElmtId(rmElmtId);
         this.__customBgUri.purgeDependencyOnElmtId(rmElmtId);
         this.__showEyedropper.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushType.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushColor.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushColorHue.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushColorSaturation.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushThickness.purgeDependencyOnElmtId(rmElmtId);
+        this.__brushOpacity.purgeDependencyOnElmtId(rmElmtId);
+        this.__isDrawing.purgeDependencyOnElmtId(rmElmtId);
+        this.__drawStrokes.purgeDependencyOnElmtId(rmElmtId);
         this.__textFontStyle.purgeDependencyOnElmtId(rmElmtId);
         this.__textFontSize.purgeDependencyOnElmtId(rmElmtId);
         this.__textShadowOpacity.purgeDependencyOnElmtId(rmElmtId);
@@ -402,6 +515,11 @@ class PlogEditorPage extends ViewPU {
         this.__textFontWeight.purgeDependencyOnElmtId(rmElmtId);
         this.__textItalicAngle.purgeDependencyOnElmtId(rmElmtId);
         this.__newTextContent.purgeDependencyOnElmtId(rmElmtId);
+        this.__historyStack.purgeDependencyOnElmtId(rmElmtId);
+        this.__historyIndex.purgeDependencyOnElmtId(rmElmtId);
+        this.__canvasScale.purgeDependencyOnElmtId(rmElmtId);
+        this.__canvasOffsetX.purgeDependencyOnElmtId(rmElmtId);
+        this.__canvasOffsetY.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
         this.__plog.aboutToBeDeleted();
@@ -432,6 +550,14 @@ class PlogEditorPage extends ViewPU {
         this.__patternSpacing.aboutToBeDeleted();
         this.__customBgUri.aboutToBeDeleted();
         this.__showEyedropper.aboutToBeDeleted();
+        this.__brushType.aboutToBeDeleted();
+        this.__brushColor.aboutToBeDeleted();
+        this.__brushColorHue.aboutToBeDeleted();
+        this.__brushColorSaturation.aboutToBeDeleted();
+        this.__brushThickness.aboutToBeDeleted();
+        this.__brushOpacity.aboutToBeDeleted();
+        this.__isDrawing.aboutToBeDeleted();
+        this.__drawStrokes.aboutToBeDeleted();
         this.__textFontStyle.aboutToBeDeleted();
         this.__textFontSize.aboutToBeDeleted();
         this.__textShadowOpacity.aboutToBeDeleted();
@@ -447,6 +573,11 @@ class PlogEditorPage extends ViewPU {
         this.__textFontWeight.aboutToBeDeleted();
         this.__textItalicAngle.aboutToBeDeleted();
         this.__newTextContent.aboutToBeDeleted();
+        this.__historyStack.aboutToBeDeleted();
+        this.__historyIndex.aboutToBeDeleted();
+        this.__canvasScale.aboutToBeDeleted();
+        this.__canvasOffsetX.aboutToBeDeleted();
+        this.__canvasOffsetY.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
     }
@@ -652,7 +783,7 @@ class PlogEditorPage extends ViewPU {
     set showEyedropper(newValue: boolean) {
         this.__showEyedropper.set(newValue);
     }
-    private eyedropperTarget: number; // 0=背景色, 1=花纹色, 2=文字色
+    private eyedropperTarget: number; // 0=背景色, 1=花纹色, 2=文字色, 3=画笔色
     private eyedropperPixelMap: image.PixelMap | null;
     private settings: RenderingContextSettings;
     private eyedropperCanvasContext: CanvasRenderingContext2D;
@@ -665,6 +796,68 @@ class PlogEditorPage extends ViewPU {
     private resizeStartHeight: number;
     private dragStartX: number;
     private dragStartY: number;
+    // ---- 画笔状态 ----
+    private __brushType: ObservedPropertySimplePU<number>; // 0=橡皮, 1=基础画笔, 2=毛笔, 3=马克笔, 4=荧光笔, 5=铅笔, 6=蜡笔, 7=水彩笔
+    get brushType() {
+        return this.__brushType.get();
+    }
+    set brushType(newValue: number) {
+        this.__brushType.set(newValue);
+    }
+    private __brushColor: ObservedPropertySimplePU<string>;
+    get brushColor() {
+        return this.__brushColor.get();
+    }
+    set brushColor(newValue: string) {
+        this.__brushColor.set(newValue);
+    }
+    private __brushColorHue: ObservedPropertySimplePU<number>;
+    get brushColorHue() {
+        return this.__brushColorHue.get();
+    }
+    set brushColorHue(newValue: number) {
+        this.__brushColorHue.set(newValue);
+    }
+    private __brushColorSaturation: ObservedPropertySimplePU<number>;
+    get brushColorSaturation() {
+        return this.__brushColorSaturation.get();
+    }
+    set brushColorSaturation(newValue: number) {
+        this.__brushColorSaturation.set(newValue);
+    }
+    private __brushThickness: ObservedPropertySimplePU<number>; // 1-50
+    get brushThickness() {
+        return this.__brushThickness.get();
+    }
+    set brushThickness(newValue: number) {
+        this.__brushThickness.set(newValue);
+    }
+    private __brushOpacity: ObservedPropertySimplePU<number>; // 0-100
+    get brushOpacity() {
+        return this.__brushOpacity.get();
+    }
+    set brushOpacity(newValue: number) {
+        this.__brushOpacity.set(newValue);
+    }
+    private __isDrawing: ObservedPropertySimplePU<boolean>;
+    get isDrawing() {
+        return this.__isDrawing.get();
+    }
+    set isDrawing(newValue: boolean) {
+        this.__isDrawing.set(newValue);
+    }
+    private drawLastX: number;
+    private drawLastY: number;
+    private drawingCanvasContext: CanvasRenderingContext2D;
+    private __drawStrokes: ObservedPropertyObjectPU<DrawStroke[]>; // 所有笔画数据
+    get drawStrokes() {
+        return this.__drawStrokes.get();
+    }
+    set drawStrokes(newValue: DrawStroke[]) {
+        this.__drawStrokes.set(newValue);
+    }
+    private currentStroke: DrawStroke | null; // 当前正在绘制的笔画
+    private canvasReady: boolean; // Canvas 是否已准备好
     // ---- 文字工具状态 ----
     private __textFontStyle: ObservedPropertySimplePU<TextStyle>;
     get textFontStyle() {
@@ -771,6 +964,46 @@ class PlogEditorPage extends ViewPU {
     set newTextContent(newValue: string) {
         this.__newTextContent.set(newValue);
     }
+    // ---- 撤销/重做状态 ----
+    private __historyStack: ObservedPropertyObjectPU<CanvasElement[][]>;
+    get historyStack() {
+        return this.__historyStack.get();
+    }
+    set historyStack(newValue: CanvasElement[][]) {
+        this.__historyStack.set(newValue);
+    }
+    private __historyIndex: ObservedPropertySimplePU<number>;
+    get historyIndex() {
+        return this.__historyIndex.get();
+    }
+    set historyIndex(newValue: number) {
+        this.__historyIndex.set(newValue);
+    }
+    private maxHistorySize: number;
+    // ---- 画布缩放状态 ----
+    private __canvasScale: ObservedPropertySimplePU<number>;
+    get canvasScale() {
+        return this.__canvasScale.get();
+    }
+    set canvasScale(newValue: number) {
+        this.__canvasScale.set(newValue);
+    }
+    private __canvasOffsetX: ObservedPropertySimplePU<number>;
+    get canvasOffsetX() {
+        return this.__canvasOffsetX.get();
+    }
+    set canvasOffsetX(newValue: number) {
+        this.__canvasOffsetX.set(newValue);
+    }
+    private __canvasOffsetY: ObservedPropertySimplePU<number>;
+    get canvasOffsetY() {
+        return this.__canvasOffsetY.get();
+    }
+    set canvasOffsetY(newValue: number) {
+        this.__canvasOffsetY.set(newValue);
+    }
+    private panStartOffsetX: number;
+    private panStartOffsetY: number;
     // 字体风格预设映射: styleKey -> fontFamily名
     private fontStyleMap: Record<string, string>;
     aboutToAppear(): void {
@@ -812,15 +1045,14 @@ class PlogEditorPage extends ViewPU {
             if (existingPlog) {
                 this.plog = existingPlog;
                 this.elements = existingPlog.elements;
+                this.drawStrokes = existingPlog.drawStrokes || [];
                 this.restoreBgState(existingPlog);
-                // 从已保存的手账中恢复diaryIds
                 if (existingPlog.diaryIds && existingPlog.diaryIds.length > 0) {
                     this.diaryIdsFromParams = existingPlog.diaryIds;
                 }
                 return;
             }
         }
-        // 始终创建新手账，支持同一天创建多个手账
         const today = DateUtils.getToday();
         this.plog = {
             id: 0,
@@ -837,11 +1069,13 @@ class PlogEditorPage extends ViewPU {
             patternSpacing: 20,
             customBgUri: '',
             elements: [],
+            drawStrokes: [],
             diaryIds: this.diaryIdsFromParams.length > 0 ? [...this.diaryIdsFromParams] : undefined,
             createdAt: Date.now(),
             thumbnail: ''
         };
         this.elements = [];
+        this.drawStrokes = [];
     }
     /** 从已保存的手账恢复背景设置到 @State */
     restoreBgState(plog: PlogCanvas): void {
@@ -858,17 +1092,32 @@ class PlogEditorPage extends ViewPU {
     }
     async loadTodayDiaryPosts(): Promise<void> {
         try {
-            const allPosts = await DiaryViewModel.getPostsByDate(DateUtils.getToday());
+            const date = this.plog?.date ?? DateUtils.getToday();
+            const allPostsByDate = await DiaryViewModel.getPostsByDate(date);
             // 优先使用路由传入的diaryIds，其次使用已保存plog中的diaryIds
             const diaryIds = this.diaryIdsFromParams.length > 0
                 ? this.diaryIdsFromParams
                 : (this.plog?.diaryIds ?? []);
             if (diaryIds.length > 0) {
                 const idSet = new Set<number>(diaryIds);
-                this.todayDiaryPosts = allPosts.filter((post: DiaryPost) => idSet.has(post.id));
+                const matched = allPostsByDate.filter((post: DiaryPost) => idSet.has(post.id));
+                // 补充：不在当前日期查询结果中、但属于手账关联的条目（来自其他日期）
+                const matchedIdSet = new Set<number>(matched.map((p: DiaryPost) => p.id));
+                const missingIds = diaryIds.filter((id: number) => !matchedIdSet.has(id));
+                if (missingIds.length > 0) {
+                    const allPosts = await DiaryViewModel.getAllPosts();
+                    const extraPosts = allPosts.filter((post: DiaryPost) => {
+                        const idSet2 = new Set<number>(missingIds);
+                        return idSet2.has(post.id);
+                    });
+                    this.todayDiaryPosts = [...matched, ...extraPosts];
+                }
+                else {
+                    this.todayDiaryPosts = matched;
+                }
             }
             else {
-                this.todayDiaryPosts = allPosts;
+                this.todayDiaryPosts = allPostsByDate;
             }
         }
         catch (error) {
@@ -1089,9 +1338,9 @@ class PlogEditorPage extends ViewPU {
         const h = ctx.height;
         if (w === 0 || h === 0 || !this.eyedropperPixelMap)
             return;
-        const img = new ImageBitmap(this.eyedropperPixelMap);
         ctx.clearRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
+        // CanvasRenderingContext2D.drawImage 支持直接传入 PixelMap
+        ctx.drawImage(this.eyedropperPixelMap, 0, 0, w, h);
     }
     /** 从 Canvas 指定坐标吸取颜色 */
     pickColorFromCanvas(x: number, y: number): void {
@@ -1117,6 +1366,9 @@ class PlogEditorPage extends ViewPU {
             else if (this.eyedropperTarget === 2) {
                 this.textColor = pickedColor;
                 this.applyTextPropsToSelected();
+            }
+            else if (this.eyedropperTarget === 3) {
+                this.brushColor = pickedColor;
             }
             this.applyBgToPlog();
             this.showEyedropper = false;
@@ -1149,6 +1401,83 @@ class PlogEditorPage extends ViewPU {
         if (a === 315)
             return 5; // BottomLeft (↙)
         return 0;
+    }
+    /** 保存当前状态到历史记录 */
+    saveHistory(): void {
+        if (this.historyIndex < this.historyStack.length - 1) {
+            this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
+        }
+        const snapshot: CanvasElement[] = this.elements.map(el => {
+            const copy: CanvasElement = {
+                type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+                rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+                fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+                fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+                textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+                lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+                italicAngle: el.italicAngle, _version: el._version,
+            };
+            return copy;
+        });
+        this.historyStack.push(snapshot);
+        if (this.historyStack.length > this.maxHistorySize) {
+            this.historyStack.shift();
+        }
+        else {
+            this.historyIndex++;
+        }
+    }
+    /** 撤销 */
+    undo(): void {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            this.elements = this.historyStack[this.historyIndex].map(el => {
+                const copy: CanvasElement = {
+                    type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+                    rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+                    fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+                    fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+                    textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+                    lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+                    italicAngle: el.italicAngle, _version: el._version,
+                };
+                return copy;
+            });
+            this.selectedElementIndex = -1;
+        }
+    }
+    /** 重做 */
+    redo(): void {
+        if (this.historyIndex < this.historyStack.length - 1) {
+            this.historyIndex++;
+            this.elements = this.historyStack[this.historyIndex].map(el => {
+                const copy: CanvasElement = {
+                    type: el.type, x: el.x, y: el.y, width: el.width, height: el.height,
+                    rotation: el.rotation, content: el.content, zIndex: el.zIndex,
+                    fontSize: el.fontSize, color: el.color, textOpacity: el.textOpacity,
+                    fontStyle: el.fontStyle, fontFamily: el.fontFamily, shadowOpacity: el.shadowOpacity,
+                    textAlign: el.textAlign, verticalAlign: el.verticalAlign, textDirection: el.textDirection,
+                    lineSpacing: el.lineSpacing, letterSpacing: el.letterSpacing, fontWeight: el.fontWeight,
+                    italicAngle: el.italicAngle, _version: el._version,
+                };
+                return copy;
+            });
+            this.selectedElementIndex = -1;
+        }
+    }
+    /** 放大画布 */
+    zoomIn(): void {
+        this.canvasScale = Math.min(this.canvasScale + 0.2, 3.0);
+    }
+    /** 缩小画布 */
+    zoomOut(): void {
+        this.canvasScale = Math.max(this.canvasScale - 0.2, 0.5);
+    }
+    /** 重置缩放 */
+    resetZoom(): void {
+        this.canvasScale = 1.0;
+        this.canvasOffsetX = 0;
+        this.canvasOffsetY = 0;
     }
     /**
      * 添加随手记到手账
@@ -1200,6 +1529,7 @@ class PlogEditorPage extends ViewPU {
             });
         }
         promptAction.showToast({ message: '已添加随手记' });
+        this.saveHistory();
     }
     /**
      * 添加文字元素
@@ -1231,6 +1561,7 @@ class PlogEditorPage extends ViewPU {
         };
         this.elements.push(element);
         this.activeToolTab = -1;
+        this.saveHistory();
     }
     /**
      * 添加贴纸元素
@@ -1238,15 +1569,325 @@ class PlogEditorPage extends ViewPU {
     addSticker(stickerUrl: string): void {
         const element: CanvasElement = {
             type: 'sticker',
-            x: 80 + (this.elements.length % 3) * 80,
-            y: 100 + Math.floor(this.elements.length / 3) * 80,
-            width: 60,
-            height: 60,
+            x: 80 + (this.elements.length % 3) * 40,
+            y: 100 + Math.floor(this.elements.length / 3) * 40,
+            width: 100,
+            height: 100,
             rotation: 0,
             content: stickerUrl,
             zIndex: this.elements.length
         };
         this.elements.push(element);
+        this.selectedElementIndex = this.elements.length - 1;
+        this.saveHistory();
+    }
+    /** 从相册选择图片作为贴纸 */
+    async pickStickerFromAlbum(): Promise<void> {
+        try {
+            const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+            photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+            photoSelectOptions.maxSelectNumber = 1;
+            const photoViewPicker = new photoAccessHelper.PhotoViewPicker();
+            const result = await photoViewPicker.select(photoSelectOptions);
+            if (result && result.photoUris && result.photoUris.length > 0) {
+                this.addSticker(result.photoUris[0]);
+                promptAction.showToast({ message: '已添加图片贴纸' });
+            }
+        }
+        catch (error) {
+            console.error('选择图片贴纸失败:', error);
+        }
+    }
+    /** 重绘所有已保存的笔画（Canvas onReady 或工具切换后调用） */
+    redrawAllStrokes(): void {
+        const ctx = this.drawingCanvasContext;
+        ctx.clearRect(0, 0, ctx.width, ctx.height);
+        for (const stroke of this.drawStrokes) {
+            if (!stroke.points || stroke.points.length === 0)
+                continue;
+            const savedBrushType = this.brushType;
+            const savedBrushColor = this.brushColor;
+            const savedBrushThickness = this.brushThickness;
+            const savedBrushOpacity = this.brushOpacity;
+            this.brushType = stroke.brushType;
+            this.brushColor = stroke.brushColor;
+            this.brushThickness = stroke.brushThickness;
+            this.brushOpacity = stroke.brushOpacity;
+            if (stroke.points.length === 1) {
+                this.drawStrokePoint(stroke.points[0].x, stroke.points[0].y);
+            }
+            else {
+                this.drawStrokePoint(stroke.points[0].x, stroke.points[0].y);
+                for (let i = 1; i < stroke.points.length; i++) {
+                    this.drawStroke(stroke.points[i - 1].x, stroke.points[i - 1].y, stroke.points[i].x, stroke.points[i].y);
+                }
+            }
+            this.brushType = savedBrushType;
+            this.brushColor = savedBrushColor;
+            this.brushThickness = savedBrushThickness;
+            this.brushOpacity = savedBrushOpacity;
+        }
+    }
+    /** 画笔在 TouchDown 时画一个起始点（修复线条不连续问题） */
+    drawStrokePoint(x: number, y: number): void {
+        const ctx = this.drawingCanvasContext;
+        if (this.brushType === 0) {
+            // 橡皮：画一个擦除圆点
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0,0,0,1)';
+            ctx.beginPath();
+            ctx.arc(x, y, this.brushThickness * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+        else {
+            ctx.globalCompositeOperation = 'source-over';
+            const alpha = this.brushOpacity / 100;
+            ctx.fillStyle = this.brushColor;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(x, y, this.brushThickness / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+    /** 画笔绘制一段笔画 */
+    drawStroke(fromX: number, fromY: number, toX: number, toY: number): void {
+        const ctx = this.drawingCanvasContext;
+        if (this.brushType === 0) {
+            // 橡皮擦：用 destination-out 模式擦除
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.lineWidth = this.brushThickness * 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+        else {
+            ctx.globalCompositeOperation = 'source-over';
+            // 设置透明度
+            const alpha = this.brushOpacity / 100;
+            // 根据画笔类型设置线条样式
+            if (this.brushType === 1) {
+                // 基础画笔：均匀线条
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 2) {
+                // 毛笔：根据速度变化粗细
+                const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+                const speed = Math.min(dist, 20);
+                const width = Math.max(2, this.brushThickness * 2 - speed * 0.3);
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 3) {
+                // 马克笔：扁宽笔触
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 2;
+                ctx.lineCap = 'butt';
+                ctx.lineJoin = 'bevel';
+                ctx.globalAlpha = alpha * 0.7;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 4) {
+                // 荧光笔：宽且半透明
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 3;
+                ctx.lineCap = 'square';
+                ctx.lineJoin = 'miter';
+                ctx.globalAlpha = alpha * 0.35;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 5) {
+                // 铅笔：细线带纹理感
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = Math.max(1, this.brushThickness * 0.5);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                // 添加纹理颗粒
+                for (let i = 0; i < 2; i++) {
+                    const ox = (Math.random() - 0.5) * this.brushThickness;
+                    const oy = (Math.random() - 0.5) * this.brushThickness;
+                    ctx.globalAlpha = alpha * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(toX + ox, toY + oy, 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            else if (this.brushType === 6) {
+                // 蜡笔：粗糙厚实线条
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 1.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha * 0.85;
+                ctx.beginPath();
+                ctx.moveTo(fromX + (Math.random() - 0.5) * 1.5, fromY + (Math.random() - 0.5) * 1.5);
+                ctx.lineTo(toX + (Math.random() - 0.5) * 1.5, toY + (Math.random() - 0.5) * 1.5);
+                ctx.stroke();
+            }
+            else if (this.brushType === 7) {
+                // 水彩笔：柔和扩散效果
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha * 0.25;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                // 外层扩散
+                ctx.lineWidth = this.brushThickness * 3;
+                ctx.globalAlpha = alpha * 0.1;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 8) {
+                // 喷枪：随机散布粒子
+                ctx.fillStyle = this.brushColor;
+                ctx.globalAlpha = alpha * 0.3;
+                const density = Math.max(10, this.brushThickness * 2);
+                const radius = this.brushThickness * 2;
+                for (let i = 0; i < density; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * radius;
+                    const px = toX + Math.cos(angle) * r;
+                    const py = toY + Math.sin(angle) * r;
+                    ctx.beginPath();
+                    ctx.arc(px, py, Math.random() * 1.5 + 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            else if (this.brushType === 9) {
+                // 钢笔：细线带压感变化
+                const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+                const pressureWidth = Math.max(1, this.brushThickness * 0.6 + (1 - Math.min(dist / 30, 1)) * this.brushThickness * 0.4);
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = pressureWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 10) {
+                // 炭笔：粗糙浓黑、带颗粒
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 1.8;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha * 0.9;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                // 炭笔颗粒
+                ctx.fillStyle = this.brushColor;
+                for (let i = 0; i < 5; i++) {
+                    const ox = (Math.random() - 0.5) * this.brushThickness * 2;
+                    const oy = (Math.random() - 0.5) * this.brushThickness * 2;
+                    ctx.globalAlpha = alpha * (0.1 + Math.random() * 0.2);
+                    ctx.beginPath();
+                    ctx.arc(toX + ox, toY + oy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            else if (this.brushType === 11) {
+                // 霓虹笔：发光效果
+                // 外发光
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness * 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha * 0.08;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                // 中层光晕
+                ctx.lineWidth = this.brushThickness * 2;
+                ctx.globalAlpha = alpha * 0.2;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                // 核心亮线
+                ctx.lineWidth = this.brushThickness * 0.8;
+                ctx.globalAlpha = alpha * 0.9;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+            else if (this.brushType === 12) {
+                // 点彩笔：排列圆点
+                ctx.fillStyle = this.brushColor;
+                ctx.globalAlpha = alpha * 0.8;
+                const dist = Math.sqrt((toX - fromX) * (toX - fromX) + (toY - fromY) * (toY - fromY));
+                const dotSpacing = Math.max(3, this.brushThickness * 0.8);
+                const steps = Math.max(1, Math.floor(dist / dotSpacing));
+                for (let i = 0; i <= steps; i++) {
+                    const t = steps > 0 ? i / steps : 0;
+                    const px = fromX + (toX - fromX) * t;
+                    const py = fromY + (toY - fromY) * t;
+                    const dotSize = this.brushThickness * 0.4 + Math.random() * this.brushThickness * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(px + (Math.random() - 0.5) * 2, py + (Math.random() - 0.5) * 2, dotSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            else if (this.brushType === 13) {
+                // 虚线笔
+                ctx.strokeStyle = this.brushColor;
+                ctx.lineWidth = this.brushThickness;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = alpha;
+                ctx.setLineDash([this.brushThickness * 2, this.brushThickness * 1.5]);
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            ctx.globalAlpha = 1.0;
+        }
     }
     /** 将文字属性面板的值应用到选中的文字元素 */
     applyTextPropsToSelected(): void {
@@ -1314,6 +1955,7 @@ class PlogEditorPage extends ViewPU {
         else if (this.selectedElementIndex > index) {
             this.selectedElementIndex--;
         }
+        this.saveHistory();
     }
     /** 复制指定元素 */
     duplicateElement(index: number): void {
@@ -1344,6 +1986,7 @@ class PlogEditorPage extends ViewPU {
         };
         this.elements.push(clone);
         this.selectedElementIndex = this.elements.length - 1;
+        this.saveHistory();
     }
     /**
      * 保存手账
@@ -1353,12 +1996,11 @@ class PlogEditorPage extends ViewPU {
             return;
         try {
             this.plog.elements = this.elements;
+            this.plog.drawStrokes = this.drawStrokes;
             this.applyBgToPlog();
-            // 确保diaryIds被保存
             if (this.diaryIdsFromParams.length > 0 && !this.plog.diaryIds) {
                 this.plog.diaryIds = [...this.diaryIdsFromParams];
             }
-            // 生成缩略图
             await this.generateThumbnail();
             if (this.plog.id === 0) {
                 const insertParams: PlogInsertParams = {
@@ -1375,6 +2017,7 @@ class PlogEditorPage extends ViewPU {
                     patternSpacing: this.plog.patternSpacing,
                     customBgUri: this.plog.customBgUri,
                     elements: this.plog.elements,
+                    drawStrokes: this.plog.drawStrokes,
                     diaryIds: this.plog.diaryIds,
                     createdAt: this.plog.createdAt,
                     thumbnail: this.plog.thumbnail
@@ -1399,17 +2042,17 @@ class PlogEditorPage extends ViewPU {
      */
     async generateThumbnail(): Promise<void> {
         try {
+            const savedSelectionIndex = this.selectedElementIndex;
+            this.selectedElementIndex = -1;
+            await new Promise<void>(resolve => setTimeout(resolve, 50));
             const pixelMap: image.PixelMap = await componentSnapshot.get('plogCanvas');
-            // 缩放到缩略图尺寸
             const scale = 200 / Math.max(pixelMap.getImageInfoSync().size.width, 1);
             pixelMap.scaleSync(scale, scale);
-            // 编码为 PNG
             const imagePackerApi = image.createImagePacker();
             const packOpts: image.PackingOption = { format: 'image/png', quality: 80 };
             const data: ArrayBuffer = await imagePackerApi.packing(pixelMap, packOpts);
             imagePackerApi.release();
             pixelMap.release();
-            // 保存到应用缓存目录
             const context = getContext(this) as common.UIAbilityContext;
             const thumbnailDir = context.cacheDir + '/thumbnails';
             if (!fs.accessSync(thumbnailDir)) {
@@ -1420,6 +2063,7 @@ class PlogEditorPage extends ViewPU {
             fs.writeSync(file.fd, data);
             fs.closeSync(file);
             this.plog!.thumbnail = thumbnailPath;
+            this.selectedElementIndex = savedSelectionIndex;
         }
         catch (error) {
             console.error('生成缩略图失败:', error);
@@ -1479,10 +2123,9 @@ class PlogEditorPage extends ViewPU {
             // 保存
             if (this.plog) {
                 this.plog.elements = this.elements;
+                this.plog.drawStrokes = this.drawStrokes;
                 this.applyBgToPlog();
-                // 生成缩略图
                 await this.generateThumbnail();
-                // 保存关联的随手记ID
                 this.plog.diaryIds = materials.posts.map((post: DiaryPost) => post.id);
                 if (this.plog.id === 0) {
                     const insertParams: PlogInsertParams = {
@@ -1499,6 +2142,7 @@ class PlogEditorPage extends ViewPU {
                         patternSpacing: this.plog.patternSpacing,
                         customBgUri: this.plog.customBgUri,
                         elements: this.plog.elements,
+                        drawStrokes: this.plog.drawStrokes,
                         diaryIds: this.plog.diaryIds,
                         createdAt: this.plog.createdAt,
                         thumbnail: this.plog.thumbnail
@@ -1526,15 +2170,7 @@ class PlogEditorPage extends ViewPU {
             Column.backgroundColor(this.activeToolTab === tabIndex ? '#FFF0E8' : Color.Transparent);
             Column.borderRadius(18);
             Column.onClick(() => {
-                if (tabIndex === 2) {
-                    this.switchToolTab(tabIndex);
-                }
-                else if (tabIndex === 4) {
-                    promptAction.showToast({ message: '画笔功能开发中' });
-                }
-                else {
-                    this.switchToolTab(tabIndex);
-                }
+                this.switchToolTab(tabIndex);
             });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2998,10 +3634,46 @@ class PlogEditorPage extends ViewPU {
                         // 贴纸详细设置
                         Grid.width('100%');
                         // 贴纸详细设置
-                        Grid.height(160);
+                        Grid.height(220);
                         // 贴纸详细设置
                         Grid.padding({ left: 16, right: 16, top: 8, bottom: 8 });
                     }, Grid);
+                    {
+                        const itemCreation2 = (elmtId, isInitialRender) => {
+                            GridItem.create(() => { }, false);
+                            // + 号按钮：从相册添加图片贴纸
+                            GridItem.width(52);
+                            // + 号按钮：从相册添加图片贴纸
+                            GridItem.height(52);
+                        };
+                        const observedDeepRender = () => {
+                            this.observeComponentCreation2(itemCreation2, GridItem);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Column.create();
+                                Column.width('100%');
+                                Column.height('100%');
+                                Column.justifyContent(FlexAlign.Center);
+                                Column.borderWidth(2);
+                                Column.borderStyle(BorderStyle.Dashed);
+                                Column.borderColor('#CCCCCC');
+                                Column.borderRadius(8);
+                                Column.onClick(() => {
+                                    this.pickStickerFromAlbum();
+                                });
+                            }, Column);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create('+');
+                                Text.fontSize(28);
+                                Text.fontColor('#999999');
+                                Text.fontWeight(FontWeight.Bold);
+                            }, Text);
+                            Text.pop();
+                            Column.pop();
+                            // + 号按钮：从相册添加图片贴纸
+                            GridItem.pop();
+                        };
+                        observedDeepRender();
+                    }
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         ForEach.create();
                         const forEachItemGenFunction = _item => {
@@ -3037,15 +3709,303 @@ class PlogEditorPage extends ViewPU {
                                 observedDeepRender();
                             }
                         };
-                        this.forEachUpdateFunction(elmtId, ['⭐', '❤️', '🌸', '🎀', '✨', '🌈', '🌟', '💎', '🍀', '🦋', '🌙', '🎈'], forEachItemGenFunction);
+                        this.forEachUpdateFunction(elmtId, ['⭐', '❤️', '🌸', '🎀', '✨', '🌈', '🌟', '💎', '🍀', '🦋', '🌙', '🎈',
+                            '🌻', '🎶', '🦊', '🐱', '🐶', '🐻', '🍬', '🎨', '📖', '💡', '🔥', '☕',
+                            '🎀', '💝', '🏡', '🌴', '🍄', '🐰', '🧸', '🍰', '🪄', '🎊', '💖', '⛅'], forEachItemGenFunction);
                     }, ForEach);
                     ForEach.pop();
                     // 贴纸详细设置
                     Grid.pop();
                 });
             }
-            else {
+            else if (this.activeToolTab === 4) {
                 this.ifElseBranchUpdateFunction(4, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 画笔详细设置
+                        Scroll.create();
+                        // 画笔详细设置
+                        Scroll.width('100%');
+                        // 画笔详细设置
+                        Scroll.scrollBar(BarState.Off);
+                    }, Scroll);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 12 });
+                        Column.width('100%');
+                        Column.padding({ left: 16, right: 16, top: 8, bottom: 8 });
+                    }, Column);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 横向滚动画笔选择
+                        Scroll.create();
+                        // 横向滚动画笔选择
+                        Scroll.scrollable(ScrollDirection.Horizontal);
+                        // 横向滚动画笔选择
+                        Scroll.scrollBar(BarState.Off);
+                        // 横向滚动画笔选择
+                        Scroll.width('100%');
+                    }, Scroll);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create({ space: 8 });
+                        Row.padding({ left: 4, right: 4 });
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        ForEach.create();
+                        const forEachItemGenFunction = _item => {
+                            const item = _item;
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(item.label as string);
+                                Text.fontSize(13);
+                                Text.fontColor(this.brushType === (item.type as number)
+                                    ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontWeight(this.brushType === (item.type as number) ? FontWeight.Medium : FontWeight.Normal);
+                                Text.padding({ left: 10, right: 10, top: 8, bottom: 8 });
+                                Text.backgroundColor(this.brushType === (item.type as number) ? '#FFF0E8' : '#F5F5F5');
+                                Text.borderRadius(16);
+                                Text.border({
+                                    width: this.brushType === (item.type as number) ? 1.5 : 0,
+                                    color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
+                                });
+                                Text.onClick(() => {
+                                    this.brushType = item.type as number;
+                                });
+                            }, Text);
+                            Text.pop();
+                        };
+                        this.forEachUpdateFunction(elmtId, [
+                            { type: 0, label: '橡皮' },
+                            { type: 1, label: '画笔' },
+                            { type: 2, label: '毛笔' },
+                            { type: 3, label: '马克笔' },
+                            { type: 4, label: '荧光笔' },
+                            { type: 5, label: '铅笔' },
+                            { type: 6, label: '蜡笔' },
+                            { type: 7, label: '水彩笔' },
+                            { type: 8, label: '喷枪' },
+                            { type: 9, label: '钢笔' },
+                            { type: 10, label: '炭笔' },
+                            { type: 11, label: '霓虹笔' },
+                            { type: 12, label: '点彩笔' },
+                            { type: 13, label: '虚线笔' }
+                        ], forEachItemGenFunction, (item: Record<string, Object>) => (item.type as number).toString(), false, false);
+                    }, ForEach);
+                    ForEach.pop();
+                    Row.pop();
+                    // 横向滚动画笔选择
+                    Scroll.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 分割线
+                        Divider.create();
+                        // 分割线
+                        Divider.color('#EEEEEE');
+                    }, Divider);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        If.create();
+                        // 颜色选择（橡皮不显示）
+                        if (this.brushType !== 0) {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create({ space: 10 });
+                                    Row.width('100%');
+                                    Row.justifyContent(FlexAlign.Center);
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 吸色笔
+                                    Column.create();
+                                    // 吸色笔
+                                    Column.width(36);
+                                    // 吸色笔
+                                    Column.height(36);
+                                    // 吸色笔
+                                    Column.borderRadius(18);
+                                    // 吸色笔
+                                    Column.justifyContent(FlexAlign.Center);
+                                    // 吸色笔
+                                    Column.backgroundColor('#FFF0E8');
+                                    // 吸色笔
+                                    Column.border({ width: 1.5, color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+                                    // 吸色笔
+                                    Column.onClick(() => this.startEyedropper(3));
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('吸');
+                                    Text.fontSize(14);
+                                    Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                // 吸色笔
+                                Column.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    ForEach.create();
+                                    const forEachItemGenFunction = _item => {
+                                        const color = _item;
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Column.create();
+                                            Column.width(32);
+                                            Column.height(32);
+                                            Column.backgroundColor(color);
+                                            Column.borderRadius(16);
+                                            Column.border({
+                                                width: this.brushColor === color ? 2 : 0.5,
+                                                color: this.brushColor === color ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : '#CCCCCC'
+                                            });
+                                            Column.onClick(() => {
+                                                this.brushColor = color;
+                                            });
+                                        }, Column);
+                                        Column.pop();
+                                    };
+                                    this.forEachUpdateFunction(elmtId, ['#333333', '#000000', '#FFFFFF', '#FF6B6B', '#4ECDC4', '#45B7D1',
+                                        '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8A65', '#64B5F6', '#81C784'], forEachItemGenFunction, (color: string) => color, false, false);
+                                }, ForEach);
+                                ForEach.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 色相滑块
+                                    Row.create();
+                                    // 色相滑块
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('色相');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.brushColorHue, min: 0, max: 360, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.selectedColor(this.hslToHex(this.brushColorHue, this.brushColorSaturation));
+                                    Slider.onChange((value: number) => {
+                                        this.brushColorHue = value;
+                                        this.brushColor = this.hslToHex(this.brushColorHue, this.brushColorSaturation);
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.brushColorHue)}°`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                // 色相滑块
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    // 饱和度滑块
+                                    Row.create();
+                                    // 饱和度滑块
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('饱和度');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.brushColorSaturation, min: 0, max: 100, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.selectedColor(this.hslToHex(this.brushColorHue, this.brushColorSaturation));
+                                    Slider.onChange((value: number) => {
+                                        this.brushColorSaturation = value;
+                                        this.brushColor = this.hslToHex(this.brushColorHue, this.brushColorSaturation);
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.brushColorSaturation)}%`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                // 饱和度滑块
+                                Row.pop();
+                            });
+                        }
+                        // 粗细滑块
+                        else {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                            });
+                        }
+                    }, If);
+                    If.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // 粗细滑块
+                        Row.create();
+                        // 粗细滑块
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('粗细');
+                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.width(40);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Slider.create({ value: this.brushThickness, min: 1, max: 50, step: 1 });
+                        Slider.layoutWeight(1);
+                        Slider.selectedColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Slider.onChange((value: number) => {
+                            this.brushThickness = value;
+                        });
+                    }, Slider);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(`${Math.round(this.brushThickness)}`);
+                        Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.width(36);
+                    }, Text);
+                    Text.pop();
+                    // 粗细滑块
+                    Row.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        If.create();
+                        // 透明度滑块（橡皮不显示）
+                        if (this.brushType !== 0) {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('透明度');
+                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(40);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Slider.create({ value: this.brushOpacity, min: 0, max: 100, step: 1 });
+                                    Slider.layoutWeight(1);
+                                    Slider.onChange((value: number) => {
+                                        this.brushOpacity = value;
+                                    });
+                                }, Slider);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`${Math.round(this.brushOpacity)}%`);
+                                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(36);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                            });
+                        }
+                        else {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                            });
+                        }
+                    }, If);
+                    If.pop();
+                    Column.pop();
+                    // 画笔详细设置
+                    Scroll.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(5, () => {
                 });
             }
         }, If);
@@ -3113,24 +4073,31 @@ class PlogEditorPage extends ViewPU {
         Text.pop();
         Column.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            // 添加按钮
-            Button.createWithLabel('添加');
-            // 添加按钮
-            Button.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            // 添加按钮
-            Button.height(32);
-            // 添加按钮
-            Button.backgroundColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            // 添加按钮
-            Button.onClick(() => this.addDiaryToCanvas(post));
-        }, Button);
-        // 添加按钮
-        Button.pop();
+            Column.create();
+            Column.width(32);
+            Column.height(32);
+            Column.justifyContent(FlexAlign.Center);
+            Column.border({
+                width: 1.5,
+                color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" },
+                style: BorderStyle.Dashed
+            });
+            Column.borderRadius(4);
+            Column.onClick(() => this.addDiaryToCanvas(post));
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('＋');
+            Text.fontSize(18);
+            Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+        }, Text);
+        Text.pop();
+        Column.pop();
         Row.pop();
     }
     initialRender() {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Stack.create();
+            Stack.create({ alignContent: Alignment.Bottom });
             Stack.width('100%');
             Stack.height('100%');
         }, Stack);
@@ -3170,6 +4137,46 @@ class PlogEditorPage extends ViewPU {
         }, Blank);
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 撤销/重做按钮组
+            Row.create({ space: 4 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(36);
+            Button.height(36);
+            Button.backgroundColor(Color.Transparent);
+            Button.enabled(this.historyIndex > 0);
+            Button.onClick(() => this.undo());
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832702, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.historyIndex > 0
+                    ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(36);
+            Button.height(36);
+            Button.backgroundColor(Color.Transparent);
+            Button.enabled(this.historyIndex < this.historyStack.length - 1);
+            Button.onClick(() => this.redo());
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831551, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.historyIndex < this.historyStack.length - 1
+                    ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        Button.pop();
+        // 撤销/重做按钮组
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
             Button.createWithLabel('保存');
             Button.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Button.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
@@ -3181,16 +4188,44 @@ class PlogEditorPage extends ViewPU {
         // 顶部栏
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            // 画布区域
+            // 画布区域（铺满剩余空间）
             Stack.create();
-            // 画布区域
+            // 画布区域（铺满剩余空间）
             Stack.width('100%');
-            // 画布区域
+            // 画布区域（铺满剩余空间）
             Stack.layoutWeight(1);
-            // 画布区域
+            // 画布区域（铺满剩余空间）
             Stack.padding(16);
-            // 画布区域
+            // 画布区域（铺满剩余空间）
+            Stack.clip(true);
+            // 画布区域（铺满剩余空间）
             Stack.id('plogCanvas');
+        }, Stack);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 画布内容层（可缩放和平移）
+            Stack.create();
+            // 画布内容层（可缩放和平移）
+            Stack.width('100%');
+            // 画布内容层（可缩放和平移）
+            Stack.height('100%');
+            // 画布内容层（可缩放和平移）
+            Stack.scale({ x: this.canvasScale, y: this.canvasScale });
+            // 画布内容层（可缩放和平移）
+            Stack.translate({ x: this.canvasOffsetX, y: this.canvasOffsetY });
+            globalThis.Gesture.create(GesturePriority.Low);
+            PanGesture.create();
+            PanGesture.onActionStart(() => {
+                this.panStartOffsetX = this.canvasOffsetX;
+                this.panStartOffsetY = this.canvasOffsetY;
+            });
+            PanGesture.onActionUpdate((event: GestureEvent) => {
+                if (this.activeToolTab !== 4) {
+                    this.canvasOffsetX = this.panStartOffsetX + event.offsetX;
+                    this.canvasOffsetY = this.panStartOffsetY + event.offsetY;
+                }
+            });
+            PanGesture.pop();
+            globalThis.Gesture.pop();
         }, Stack);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
@@ -3280,20 +4315,234 @@ class PlogEditorPage extends ViewPU {
                     if (element.type === 'image' || element.type === 'sticker') {
                         this.ifElseBranchUpdateFunction(0, () => {
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                Image.create(element.content);
-                                Image.width(element.width);
-                                Image.height(element.height);
-                                Image.position({ x: element.x, y: element.y });
-                                Image.rotate({ angle: element.rotation });
-                                Image.zIndex(element.zIndex);
-                                Image.border({
-                                    width: this.selectedElementIndex === index ? 2 : 0,
-                                    color: { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }
-                                });
-                                Image.onClick(() => {
+                                Stack.create();
+                                Stack.position({ x: this.elements[index].x, y: this.elements[index].y });
+                                Stack.width(this.elements[index].width);
+                                Stack.height(this.elements[index].height);
+                                Stack.zIndex(element.zIndex);
+                                Stack.rotate({ angle: element.rotation });
+                                globalThis.Gesture.create(GesturePriority.Low);
+                                GestureGroup.create(GestureMode.Exclusive);
+                                PanGesture.create({ fingers: 1, distance: 5 });
+                                PanGesture.onActionStart(() => {
+                                    this.dragStartX = this.elements[index].x;
+                                    this.dragStartY = this.elements[index].y;
                                     this.selectedElementIndex = index;
                                 });
-                            }, Image);
+                                PanGesture.onActionUpdate((event: GestureEvent) => {
+                                    const old = this.elements[index];
+                                    this.elements[index] = {
+                                        type: old.type, x: this.dragStartX + event.offsetX, y: this.dragStartY + event.offsetY,
+                                        width: old.width, height: old.height, rotation: old.rotation, content: old.content,
+                                        zIndex: old.zIndex, fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                                        fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                                        verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                                        letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                                        fontFamily: old.fontFamily,
+                                        _version: (old._version ?? 0) + 1,
+                                    };
+                                    this.elements = [...this.elements];
+                                });
+                                PanGesture.onActionEnd(() => {
+                                    this.elements = [...this.elements];
+                                });
+                                PanGesture.pop();
+                                TapGesture.create({ count: 1 });
+                                TapGesture.onAction(() => {
+                                    this.selectedElementIndex = index;
+                                });
+                                TapGesture.pop();
+                                GestureGroup.pop();
+                                globalThis.Gesture.pop();
+                            }, Stack);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                // 区分：图片路径用 Image，emoji 贴纸用 Text
+                                if (element.content.startsWith('file://') || element.content.startsWith('content://') ||
+                                    element.content.startsWith('http') || element.content.startsWith('/')) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Image.create(element.content);
+                                            Image.width('100%');
+                                            Image.height('100%');
+                                            Image.objectFit(ImageFit.Contain);
+                                        }, Image);
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(element.content);
+                                            Text.fontSize(Math.min(element.width, element.height) * 0.7);
+                                            Text.width('100%');
+                                            Text.height('100%');
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                // 选中时的边框（白色虚线）
+                                if (this.selectedElementIndex === index) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Column.create();
+                                            Column.width('100%');
+                                            Column.height('100%');
+                                            Column.border({
+                                                width: 3,
+                                                color: Color.White,
+                                                style: BorderStyle.Dashed
+                                            });
+                                            Column.borderRadius(4);
+                                            Column.hitTestBehavior(HitTestMode.None);
+                                        }, Column);
+                                        Column.pop();
+                                    });
+                                }
+                                // 选中时的控制按钮
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                // 选中时的控制按钮
+                                if (this.selectedElementIndex === index) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 删除按钮（右上角）×
+                                            Column.create();
+                                            // 删除按钮（右上角）×
+                                            Column.width(22);
+                                            // 删除按钮（右上角）×
+                                            Column.height(22);
+                                            // 删除按钮（右上角）×
+                                            Column.backgroundColor(Color.White);
+                                            // 删除按钮（右上角）×
+                                            Column.borderRadius(11);
+                                            // 删除按钮（右上角）×
+                                            Column.position({ x: this.elements[index].width - 11, y: -11 });
+                                            // 删除按钮（右上角）×
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 删除按钮（右上角）×
+                                            Column.zIndex(100);
+                                            // 删除按钮（右上角）×
+                                            Column.onClick(() => {
+                                                this.deleteElement(index);
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('×');
+                                            Text.fontSize(14);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 删除按钮（右上角）×
+                                        Column.pop();
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 复制按钮（左下角）+1
+                                            Column.create();
+                                            // 复制按钮（左下角）+1
+                                            Column.width(22);
+                                            // 复制按钮（左下角）+1
+                                            Column.height(22);
+                                            // 复制按钮（左下角）+1
+                                            Column.backgroundColor(Color.White);
+                                            // 复制按钮（左下角）+1
+                                            Column.borderRadius(11);
+                                            // 复制按钮（左下角）+1
+                                            Column.position({ x: -11, y: this.elements[index].height - 11 });
+                                            // 复制按钮（左下角）+1
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 复制按钮（左下角）+1
+                                            Column.zIndex(100);
+                                            // 复制按钮（左下角）+1
+                                            Column.onClick(() => {
+                                                this.duplicateElement(index);
+                                            });
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('+1');
+                                            Text.fontSize(9);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 复制按钮（左下角）+1
+                                        Column.pop();
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            // 缩放手柄（右下角）↻
+                                            Column.create();
+                                            // 缩放手柄（右下角）↻
+                                            Column.width(22);
+                                            // 缩放手柄（右下角）↻
+                                            Column.height(22);
+                                            // 缩放手柄（右下角）↻
+                                            Column.backgroundColor(Color.White);
+                                            // 缩放手柄（右下角）↻
+                                            Column.borderRadius(11);
+                                            // 缩放手柄（右下角）↻
+                                            Column.position({ x: this.elements[index].width - 11, y: this.elements[index].height - 11 });
+                                            // 缩放手柄（右下角）↻
+                                            Column.justifyContent(FlexAlign.Center);
+                                            // 缩放手柄（右下角）↻
+                                            Column.zIndex(100);
+                                            globalThis.Gesture.create(GesturePriority.Low);
+                                            PanGesture.create();
+                                            PanGesture.onActionStart(() => {
+                                                this.resizeStartWidth = this.elements[index].width;
+                                                this.resizeStartHeight = this.elements[index].height;
+                                            });
+                                            PanGesture.onActionUpdate((event: GestureEvent) => {
+                                                const newWidth = Math.max(40, this.resizeStartWidth + event.offsetX);
+                                                const newHeight = Math.max(40, this.resizeStartHeight + event.offsetY);
+                                                const old = this.elements[index];
+                                                this.elements[index] = {
+                                                    type: old.type, x: old.x, y: old.y, width: newWidth, height: newHeight,
+                                                    rotation: old.rotation, content: old.content, zIndex: old.zIndex,
+                                                    fontSize: old.fontSize, color: old.color, textOpacity: old.textOpacity,
+                                                    fontStyle: old.fontStyle, shadowOpacity: old.shadowOpacity, textAlign: old.textAlign,
+                                                    verticalAlign: old.verticalAlign, textDirection: old.textDirection, lineSpacing: old.lineSpacing,
+                                                    letterSpacing: old.letterSpacing, fontWeight: old.fontWeight, italicAngle: old.italicAngle,
+                                                    fontFamily: old.fontFamily,
+                                                    _version: (old._version ?? 0) + 1,
+                                                };
+                                                this.elements = [...this.elements];
+                                            });
+                                            PanGesture.onActionEnd(() => {
+                                                this.elements = [...this.elements];
+                                            });
+                                            PanGesture.pop();
+                                            globalThis.Gesture.pop();
+                                        }, Column);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create('↻');
+                                            Text.fontSize(14);
+                                            Text.fontColor('#333333');
+                                            Text.fontWeight(FontWeight.Bold);
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                        // 缩放手柄（右下角）↻
+                                        Column.pop();
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            Stack.pop();
                         });
                     }
                     else if (element.type === 'text') {
@@ -3629,13 +4878,186 @@ class PlogEditorPage extends ViewPU {
         }, ForEach);
         // 画布元素
         ForEach.pop();
-        // 画布区域
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.create(this.drawingCanvasContext);
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.width('100%');
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.height('100%');
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.id('drawingCanvas');
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.hitTestBehavior(this.activeToolTab === 4 ? HitTestMode.Default : HitTestMode.None);
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.onReady(() => {
+                this.canvasReady = true;
+                this.redrawAllStrokes();
+            });
+            // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+            Canvas.onTouch((event: TouchEvent) => {
+                if (this.activeToolTab !== 4)
+                    return;
+                if (event.type === TouchType.Down && event.touches.length > 0) {
+                    const x = event.touches[0].x;
+                    const y = event.touches[0].y;
+                    this.drawLastX = x;
+                    this.drawLastY = y;
+                    this.isDrawing = true;
+                    // 开始新笔画
+                    this.currentStroke = {
+                        brushType: this.brushType,
+                        brushColor: this.brushColor,
+                        brushThickness: this.brushThickness,
+                        brushOpacity: this.brushOpacity,
+                        points: [{ x, y }]
+                    };
+                    // 在 TouchDown 时画一个起始点（修复不连续问题）
+                    this.drawStrokePoint(x, y);
+                }
+                else if (event.type === TouchType.Move && event.touches.length > 0 && this.isDrawing) {
+                    const x = event.touches[0].x;
+                    const y = event.touches[0].y;
+                    this.drawStroke(this.drawLastX, this.drawLastY, x, y);
+                    // 记录点到当前笔画
+                    if (this.currentStroke) {
+                        this.currentStroke.points.push({ x, y });
+                    }
+                    this.drawLastX = x;
+                    this.drawLastY = y;
+                }
+                else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.isDrawing = false;
+                    // 保存当前笔画
+                    if (this.currentStroke && this.currentStroke.points.length > 0) {
+                        this.drawStrokes = [...this.drawStrokes, this.currentStroke];
+                        this.currentStroke = null;
+                    }
+                }
+            });
+        }, Canvas);
+        // 画笔绘图层（始终渲染以保留绘画内容，仅在画笔工具激活时可交互）
+        Canvas.pop();
+        // 画布内容层（可缩放和平移）
         Stack.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            // 底部综合面板（主工具栏 + 子工具栏 + 详细设置）
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.create({ space: 8 });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.padding({ left: 8, right: 8, top: 6, bottom: 6 });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.borderRadius(20);
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: 2 });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.position({ x: '50%', y: 16 });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.translate({ x: '-50%', y: 0 });
+            // 右上角缩放控制条：放大镜-  100%  放大镜+
+            Row.zIndex(200);
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 缩小按钮
+            Button.createWithChild();
+            // 缩小按钮
+            Button.width(52);
+            // 缩小按钮
+            Button.height(36);
+            // 缩小按钮
+            Button.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            // 缩小按钮
+            Button.borderRadius(18);
+            // 缩小按钮
+            Button.enabled(this.canvasScale > 0.5);
+            // 缩小按钮
+            Button.onClick(() => this.zoomOut());
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 2 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831500, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(16);
+            SymbolGlyph.fontColor([this.canvasScale > 0.5
+                    ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('−');
+            Text.fontSize(18);
+            Text.fontColor(this.canvasScale > 0.5
+                ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        // 缩小按钮
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 百分比显示
+            Text.create(`${Math.round(this.canvasScale * 100)}%`);
+            // 百分比显示
+            Text.fontSize(14);
+            // 百分比显示
+            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            // 百分比显示
+            Text.fontWeight(FontWeight.Medium);
+            // 百分比显示
+            Text.width(50);
+            // 百分比显示
+            Text.textAlign(TextAlign.Center);
+        }, Text);
+        // 百分比显示
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 放大按钮
+            Button.createWithChild();
+            // 放大按钮
+            Button.width(52);
+            // 放大按钮
+            Button.height(36);
+            // 放大按钮
+            Button.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            // 放大按钮
+            Button.borderRadius(18);
+            // 放大按钮
+            Button.enabled(this.canvasScale < 3.0);
+            // 放大按钮
+            Button.onClick(() => this.zoomIn());
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 2 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831500, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(16);
+            SymbolGlyph.fontColor([this.canvasScale < 3.0
+                    ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('＋');
+            Text.fontSize(18);
+            Text.fontColor(this.canvasScale < 3.0
+                ? { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        // 放大按钮
+        Button.pop();
+        // 右上角缩放控制条：放大镜-  100%  放大镜+
+        Row.pop();
+        // 画布区域（铺满剩余空间）
+        Stack.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 底部工具栏悬浮面板（叠加在画布上方）
             Column.create();
-            // 底部综合面板（主工具栏 + 子工具栏 + 详细设置）
+            // 底部工具栏悬浮面板（叠加在画布上方）
             Column.width('100%');
+            // 底部工具栏悬浮面板（叠加在画布上方）
+            Column.alignItems(HorizontalAlign.Start);
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
@@ -3763,8 +5185,7 @@ class PlogEditorPage extends ViewPU {
         this.MainToolButton.bind(this)('画笔', 4);
         // 主工具栏（始终显示）
         Row.pop();
-        // 底部综合面板（主工具栏 + 子工具栏 + 详细设置）
-        Column.pop();
+        // 底部工具栏悬浮面板（叠加在画布上方）
         Column.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();

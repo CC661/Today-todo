@@ -2,9 +2,10 @@ if (!("finalizeConstruction" in ViewPU.prototype)) {
     Reflect.set(ViewPU.prototype, "finalizeConstruction", () => { });
 }
 interface PlogPreviewPage_Params {
-    plog?: PlogCanvas | null;
+    plogs?: PlogCanvas[];
+    currentIndex?: number;
     isLoading?: boolean;
-    plogId?: number;
+    initialPlogId?: number;
     settings?: RenderingContextSettings;
     patternCanvasContext?: CanvasRenderingContext2D;
 }
@@ -17,23 +18,27 @@ class PlogPreviewPage extends ViewPU {
         if (typeof paramsLambda === "function") {
             this.paramsGenerator_ = paramsLambda;
         }
-        this.__plog = new ObservedPropertyObjectPU(null, this, "plog");
+        this.__plogs = new ObservedPropertyObjectPU([], this, "plogs");
+        this.__currentIndex = new ObservedPropertySimplePU(0, this, "currentIndex");
         this.__isLoading = new ObservedPropertySimplePU(true, this, "isLoading");
-        this.plogId = 0;
+        this.initialPlogId = 0;
         this.settings = new RenderingContextSettings(true);
         this.patternCanvasContext = new CanvasRenderingContext2D(this.settings);
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
     setInitiallyProvidedValue(params: PlogPreviewPage_Params) {
-        if (params.plog !== undefined) {
-            this.plog = params.plog;
+        if (params.plogs !== undefined) {
+            this.plogs = params.plogs;
+        }
+        if (params.currentIndex !== undefined) {
+            this.currentIndex = params.currentIndex;
         }
         if (params.isLoading !== undefined) {
             this.isLoading = params.isLoading;
         }
-        if (params.plogId !== undefined) {
-            this.plogId = params.plogId;
+        if (params.initialPlogId !== undefined) {
+            this.initialPlogId = params.initialPlogId;
         }
         if (params.settings !== undefined) {
             this.settings = params.settings;
@@ -45,21 +50,30 @@ class PlogPreviewPage extends ViewPU {
     updateStateVars(params: PlogPreviewPage_Params) {
     }
     purgeVariableDependenciesOnElmtId(rmElmtId) {
-        this.__plog.purgeDependencyOnElmtId(rmElmtId);
+        this.__plogs.purgeDependencyOnElmtId(rmElmtId);
+        this.__currentIndex.purgeDependencyOnElmtId(rmElmtId);
         this.__isLoading.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
-        this.__plog.aboutToBeDeleted();
+        this.__plogs.aboutToBeDeleted();
+        this.__currentIndex.aboutToBeDeleted();
         this.__isLoading.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
     }
-    private __plog: ObservedPropertyObjectPU<PlogCanvas | null>;
-    get plog() {
-        return this.__plog.get();
+    private __plogs: ObservedPropertyObjectPU<PlogCanvas[]>;
+    get plogs() {
+        return this.__plogs.get();
     }
-    set plog(newValue: PlogCanvas | null) {
-        this.__plog.set(newValue);
+    set plogs(newValue: PlogCanvas[]) {
+        this.__plogs.set(newValue);
+    }
+    private __currentIndex: ObservedPropertySimplePU<number>;
+    get currentIndex() {
+        return this.__currentIndex.get();
+    }
+    set currentIndex(newValue: number) {
+        this.__currentIndex.set(newValue);
     }
     private __isLoading: ObservedPropertySimplePU<boolean>;
     get isLoading() {
@@ -68,37 +82,43 @@ class PlogPreviewPage extends ViewPU {
     set isLoading(newValue: boolean) {
         this.__isLoading.set(newValue);
     }
-    private plogId: number;
+    private initialPlogId: number;
     private settings: RenderingContextSettings;
     private patternCanvasContext: CanvasRenderingContext2D;
     aboutToAppear(): void {
         const params = router.getParams() as Record<string, Object> | null;
         if (params && params['plogId']) {
-            this.plogId = params['plogId'] as number;
+            this.initialPlogId = params['plogId'] as number;
         }
-        this.loadPlog();
+        this.loadAllPlogs();
     }
-    async loadPlog(): Promise<void> {
-        if (this.plogId > 0) {
-            try {
-                this.plog = await PlogViewModel.getPlogById(this.plogId);
-            }
-            catch (error) {
-                console.error('加载手账失败:', error);
+    async loadAllPlogs(): Promise<void> {
+        this.isLoading = true;
+        try {
+            this.plogs = await PlogViewModel.getAllPlogs();
+            if (this.initialPlogId > 0) {
+                const idx = this.plogs.findIndex(p => p.id === this.initialPlogId);
+                if (idx >= 0) {
+                    this.currentIndex = idx;
+                }
             }
         }
-        this.isLoading = false;
+        catch (error) {
+            console.error('加载手账列表失败:', error);
+        }
+        finally {
+            this.isLoading = false;
+        }
     }
     navigateBack(): void {
         router.back();
     }
-    navigateToEdit(): void {
+    navigateToEdit(plogId: number): void {
         router.pushUrl({
             url: 'pages/PlogEditorPage',
-            params: { plogId: this.plogId }
+            params: { plogId: plogId }
         });
     }
-    /** 渐变角度 → GradientDirection 枚举值 */
     gradientAngleToGradientDirection(angle: number): number {
         const a = Math.round(angle / 45) * 45;
         if (a === 0 || a === 360)
@@ -119,23 +139,19 @@ class PlogPreviewPage extends ViewPU {
             return 5;
         return 0;
     }
-    /** 绘制花纹（透明底，叠加在背景之上） */
-    drawPatternBg(): void {
-        if (!this.plog)
-            return;
-        const ctx = this.patternCanvasContext;
+    drawPatternBg(plog: PlogCanvas, ctx: CanvasRenderingContext2D): void {
         const w: number = ctx.width;
         const h: number = ctx.height;
         if (w === 0 || h === 0)
             return;
-        const t = this.plog.patternThickness;
-        const s = this.plog.patternSpacing;
+        const t = plog.patternThickness;
+        const s = plog.patternSpacing;
         ctx.clearRect(0, 0, w, h);
-        const pColor = this.plog.patternColor || '#E0E0E0';
+        const pColor = plog.patternColor || '#E0E0E0';
         ctx.strokeStyle = pColor;
         ctx.lineWidth = t;
         ctx.fillStyle = pColor;
-        const pType = this.plog.patternType;
+        const pType = plog.patternType;
         if (pType === 'horizontal') {
             for (let y = 0; y < h; y += s) {
                 ctx.beginPath();
@@ -193,6 +209,185 @@ class PlogPreviewPage extends ViewPU {
             }
         }
     }
+    PlogPage(plog: PlogCanvas, parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Stack.create();
+            Stack.width('100%');
+            Stack.height('100%');
+        }, Stack);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (plog.bgType === 'custom' && plog.customBgUri) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Image.create(plog.customBgUri);
+                        Image.width('100%');
+                        Image.height('100%');
+                        Image.objectFit(ImageFit.Cover);
+                    }, Image);
+                });
+            }
+            else if (plog.bgType === 'gradient' && plog.gradientColors.length >= 2) {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.width('100%');
+                        Column.height('100%');
+                        Column.linearGradient({
+                            direction: this.gradientAngleToGradientDirection(plog.gradientAngle),
+                            colors: plog.gradientColors.map((c: string, i: number) => [c, i / (plog.gradientColors.length - 1)] as [
+                                ResourceColor,
+                                number
+                            ])
+                        });
+                    }, Column);
+                    Column.pop();
+                });
+            }
+            else if (plog.bgType === 'solid') {
+                this.ifElseBranchUpdateFunction(2, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.width('100%');
+                        Column.height('100%');
+                        Column.backgroundColor(plog.bgColor || '#FFFFFF');
+                    }, Column);
+                    Column.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(3, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.width('100%');
+                        Column.height('100%');
+                        Column.backgroundColor(Color.White);
+                    }, Column);
+                    Column.pop();
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (plog.hasPattern && plog.patternType !== 'none') {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Canvas.create(this.patternCanvasContext);
+                        Canvas.width('100%');
+                        Canvas.height('100%');
+                        Canvas.onReady(() => { this.drawPatternBg(plog, this.patternCanvasContext); });
+                    }, Canvas);
+                    Canvas.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            ForEach.create();
+            const forEachItemGenFunction = _item => {
+                const element = _item;
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    If.create();
+                    if (element.type === 'image' || element.type === 'sticker') {
+                        this.ifElseBranchUpdateFunction(0, () => {
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Stack.create();
+                                Stack.width(element.width);
+                                Stack.height(element.height);
+                                Stack.position({ x: element.x, y: element.y });
+                                Stack.rotate({ angle: element.rotation });
+                                Stack.zIndex(element.zIndex);
+                            }, Stack);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                If.create();
+                                if (element.content.startsWith('file://') || element.content.startsWith('content://') ||
+                                    element.content.startsWith('http') || element.content.startsWith('/')) {
+                                    this.ifElseBranchUpdateFunction(0, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Image.create(element.content);
+                                            Image.width('100%');
+                                            Image.height('100%');
+                                            Image.objectFit(ImageFit.Contain);
+                                        }, Image);
+                                    });
+                                }
+                                else {
+                                    this.ifElseBranchUpdateFunction(1, () => {
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            Text.create(element.content);
+                                            Text.fontSize(Math.min(element.width, element.height) * 0.7);
+                                            Text.width('100%');
+                                            Text.height('100%');
+                                            Text.textAlign(TextAlign.Center);
+                                        }, Text);
+                                        Text.pop();
+                                    });
+                                }
+                            }, If);
+                            If.pop();
+                            Stack.pop();
+                        });
+                    }
+                    else if (element.type === 'text') {
+                        this.ifElseBranchUpdateFunction(1, () => {
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Column.create();
+                                Column.width(element.width);
+                                Column.height(element.height);
+                                Column.position({ x: element.x, y: element.y });
+                                Column.rotate({ angle: element.rotation });
+                                Column.zIndex(element.zIndex);
+                                Column.justifyContent(element.textDirection === 'vertical'
+                                    ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
+                                    : FlexAlign.Center);
+                            }, Column);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(element.textDirection === 'vertical' ? element.content.split('').join('\n') : element.content);
+                                Text.fontSize(element.fontSize || 14);
+                                Text.fontColor(element.color || '#333333');
+                                Text.fontWeight(element.fontWeight ?? 400);
+                                Text.fontFamily(element.fontFamily || undefined);
+                                Text.textAlign(element.textAlign ?? TextAlign.Center);
+                                Text.maxLines(50);
+                                Text.textOverflow({ overflow: TextOverflow.Clip });
+                                Text.letterSpacing(element.letterSpacing ?? 0);
+                                Text.lineHeight(element.textDirection === 'vertical'
+                                    ? (element.fontSize ?? 14) + (element.letterSpacing ?? 0)
+                                    : (element.fontSize ?? 14) * (element.lineSpacing ?? 1.2));
+                                Text.textShadow({
+                                    radius: (element.shadowOpacity ?? 0) > 0 ? 2 : 0,
+                                    color: (element.shadowOpacity ?? 0) > 0
+                                        ? `rgba(0,0,0,${Math.max(0.15, (element.shadowOpacity ?? 0) / 100)})`
+                                        : 'rgba(0,0,0,0)',
+                                    offsetX: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0,
+                                    offsetY: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0
+                                });
+                                Text.opacity((element.textOpacity ?? 100) / 100);
+                                Text.width('100%');
+                                Text.padding({ left: 12, right: 12, top: 8, bottom: 8 });
+                                Text.rotate({ angle: element.italicAngle ?? 0 });
+                            }, Text);
+                            Text.pop();
+                            Column.pop();
+                        });
+                    }
+                    else {
+                        this.ifElseBranchUpdateFunction(2, () => {
+                        });
+                    }
+                }, If);
+                If.pop();
+            };
+            this.forEachUpdateFunction(elmtId, plog.elements, forEachItemGenFunction, (element: CanvasElement, index: number) => `${plog.id}_${index}_${element._version ?? 0}`, false, true);
+        }, ForEach);
+        ForEach.pop();
+        Stack.pop();
+    }
     initialRender() {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Stack.create();
@@ -206,15 +401,11 @@ class PlogPreviewPage extends ViewPU {
             Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            // 顶部栏：返回 + 日期标题 + 编辑
             Row.create();
-            // 顶部栏：返回 + 日期标题 + 编辑
             Row.width('100%');
-            // 顶部栏：返回 + 日期标题 + 编辑
             Row.height(48);
-            // 顶部栏：返回 + 日期标题 + 编辑
-            Row.padding({ left: 12, right: 16 });
-            // 顶部栏：返回 + 日期标题 + 编辑
+            Row.padding({ left: 12, right: 12 });
+            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Row.alignItems(VerticalAlign.Center);
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -235,21 +426,38 @@ class PlogPreviewPage extends ViewPU {
         }, Blank);
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create(this.plog?.date ?? '');
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontWeight(FontWeight.Medium);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create(this.plogs.length > 0 && this.currentIndex < this.plogs.length
+                ? `${this.plogs[this.currentIndex].date}  ${this.currentIndex + 1}/${this.plogs.length}`
+                : '');
+            Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Blank.create();
         }, Blank);
         Blank.pop();
-        // 顶部栏：返回 + 日期标题 + 编辑
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(40);
+            Button.height(40);
+            Button.backgroundColor(Color.Transparent);
+            Button.enabled(this.plogs.length > 0 && this.currentIndex < this.plogs.length);
+            Button.onClick(() => {
+                if (this.plogs.length > 0 && this.currentIndex < this.plogs.length) {
+                    this.navigateToEdit(this.plogs[this.currentIndex].id);
+                }
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831624, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(20);
+            SymbolGlyph.fontColor([{ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+        }, SymbolGlyph);
+        Button.pop();
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
-            // 画布区域
             if (this.isLoading) {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -260,7 +468,7 @@ class PlogPreviewPage extends ViewPU {
                     }, LoadingProgress);
                 });
             }
-            else if (!this.plog) {
+            else if (this.plogs.length === 0) {
                 this.ifElseBranchUpdateFunction(1, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Column.create();
@@ -275,7 +483,7 @@ class PlogPreviewPage extends ViewPU {
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create('手账加载失败');
+                        Text.create('还没有手账');
                         Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
@@ -285,166 +493,29 @@ class PlogPreviewPage extends ViewPU {
             }
             else {
                 this.ifElseBranchUpdateFunction(2, () => {
-                    if (!If.canRetake('previewCanvas')) {
-                        this.observeComponentCreation2((elmtId, isInitialRender) => {
-                            Stack.create();
-                            Stack.width('100%');
-                            Stack.layoutWeight(1);
-                            Stack.padding(16);
-                            Stack.id('previewCanvas');
-                        }, Stack);
-                        this.observeComponentCreation2((elmtId, isInitialRender) => {
-                            If.create();
-                            // 画布底色
-                            if (this.plog.bgType === 'custom' && this.plog.customBgUri) {
-                                this.ifElseBranchUpdateFunction(0, () => {
-                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                        Image.create(this.plog.customBgUri);
-                                        Image.width('100%');
-                                        Image.height('100%');
-                                        Image.objectFit(ImageFit.Cover);
-                                    }, Image);
-                                });
-                            }
-                            else if (this.plog.bgType === 'gradient' && this.plog.gradientColors.length >= 2) {
-                                this.ifElseBranchUpdateFunction(1, () => {
-                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                        Column.create();
-                                        Column.width('100%');
-                                        Column.height('100%');
-                                        Column.linearGradient({
-                                            direction: this.gradientAngleToGradientDirection(this.plog.gradientAngle),
-                                            colors: this.plog.gradientColors.map((c: string, i: number) => [c, i / (this.plog!.gradientColors.length - 1)] as [
-                                                ResourceColor,
-                                                number
-                                            ])
-                                        });
-                                    }, Column);
-                                    Column.pop();
-                                });
-                            }
-                            else if (this.plog.bgType === 'solid') {
-                                this.ifElseBranchUpdateFunction(2, () => {
-                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                        Column.create();
-                                        Column.width('100%');
-                                        Column.height('100%');
-                                        Column.backgroundColor(this.plog.bgColor || '#FFFFFF');
-                                    }, Column);
-                                    Column.pop();
-                                });
-                            }
-                            else {
-                                this.ifElseBranchUpdateFunction(3, () => {
-                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                        Column.create();
-                                        Column.width('100%');
-                                        Column.height('100%');
-                                        Column.backgroundColor(Color.White);
-                                    }, Column);
-                                    Column.pop();
-                                });
-                            }
-                        }, If);
-                        If.pop();
-                        this.observeComponentCreation2((elmtId, isInitialRender) => {
-                            If.create();
-                            // 花纹叠加层
-                            if (this.plog.hasPattern && this.plog.patternType !== 'none') {
-                                this.ifElseBranchUpdateFunction(0, () => {
-                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                        Canvas.create(this.patternCanvasContext);
-                                        Canvas.width('100%');
-                                        Canvas.height('100%');
-                                        Canvas.onReady(() => {
-                                            this.drawPatternBg();
-                                        });
-                                    }, Canvas);
-                                    Canvas.pop();
-                                });
-                            }
-                            // 画布元素（只读渲染，无交互）
-                            else {
-                                this.ifElseBranchUpdateFunction(1, () => {
-                                });
-                            }
-                        }, If);
-                        If.pop();
-                        this.observeComponentCreation2((elmtId, isInitialRender) => {
-                            // 画布元素（只读渲染，无交互）
-                            ForEach.create();
-                            const forEachItemGenFunction = _item => {
-                                const element = _item;
-                                this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                    If.create();
-                                    if (element.type === 'image' || element.type === 'sticker') {
-                                        this.ifElseBranchUpdateFunction(0, () => {
-                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                                Image.create(element.content);
-                                                Image.width(element.width);
-                                                Image.height(element.height);
-                                                Image.position({ x: element.x, y: element.y });
-                                                Image.rotate({ angle: element.rotation });
-                                                Image.zIndex(element.zIndex);
-                                            }, Image);
-                                        });
-                                    }
-                                    else if (element.type === 'text') {
-                                        this.ifElseBranchUpdateFunction(1, () => {
-                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                                Column.create();
-                                                Column.width(element.width);
-                                                Column.height(element.height);
-                                                Column.position({ x: element.x, y: element.y });
-                                                Column.rotate({ angle: element.rotation });
-                                                Column.zIndex(element.zIndex);
-                                                Column.justifyContent(element.textDirection === 'vertical'
-                                                    ? (element.verticalAlign === 0 ? FlexAlign.Start : element.verticalAlign === 2 ? FlexAlign.End : FlexAlign.Center)
-                                                    : FlexAlign.Center);
-                                            }, Column);
-                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                                Text.create(element.textDirection === 'vertical' ? element.content.split('').join('\n') : element.content);
-                                                Text.fontSize(element.fontSize || 14);
-                                                Text.fontColor(element.color || '#333333');
-                                                Text.fontWeight(element.fontWeight ?? 400);
-                                                Text.fontFamily(element.fontFamily || undefined);
-                                                Text.textAlign(element.textAlign ?? TextAlign.Center);
-                                                Text.maxLines(50);
-                                                Text.textOverflow({ overflow: TextOverflow.Clip });
-                                                Text.letterSpacing(element.letterSpacing ?? 0);
-                                                Text.lineHeight(element.textDirection === 'vertical'
-                                                    ? (element.fontSize ?? 14) + (element.letterSpacing ?? 0)
-                                                    : (element.fontSize ?? 14) * (element.lineSpacing ?? 1.2));
-                                                Text.textShadow({
-                                                    radius: (element.shadowOpacity ?? 0) > 0 ? 2 : 0,
-                                                    color: (element.shadowOpacity ?? 0) > 0
-                                                        ? `rgba(0,0,0,${Math.max(0.15, (element.shadowOpacity ?? 0) / 100)})`
-                                                        : 'rgba(0,0,0,0)',
-                                                    offsetX: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0,
-                                                    offsetY: (element.shadowOpacity ?? 0) > 0 ? 0.5 : 0
-                                                });
-                                                Text.opacity((element.textOpacity ?? 100) / 100);
-                                                Text.width('100%');
-                                                Text.padding({ left: 12, right: 12, top: 8, bottom: 8 });
-                                                Text.rotate({ angle: element.italicAngle ?? 0 });
-                                            }, Text);
-                                            Text.pop();
-                                            Column.pop();
-                                        });
-                                    }
-                                    else {
-                                        this.ifElseBranchUpdateFunction(2, () => {
-                                        });
-                                    }
-                                }, If);
-                                If.pop();
-                            };
-                            this.forEachUpdateFunction(elmtId, this.plog.elements, forEachItemGenFunction, (element: CanvasElement, index: number) => `${index}_${element._version ?? 0}`, false, true);
-                        }, ForEach);
-                        // 画布元素（只读渲染，无交互）
-                        ForEach.pop();
-                        Stack.pop();
-                    }
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Swiper.create();
+                        Swiper.index(this.currentIndex);
+                        Swiper.indicator(false);
+                        Swiper.loop(false);
+                        Swiper.duration(300);
+                        Swiper.curve(Curve.EaseInOut);
+                        Swiper.onChange((index: number) => {
+                            this.currentIndex = index;
+                        });
+                        Swiper.width('100%');
+                        Swiper.layoutWeight(1);
+                    }, Swiper);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        ForEach.create();
+                        const forEachItemGenFunction = _item => {
+                            const plog = _item;
+                            this.PlogPage.bind(this)(plog);
+                        };
+                        this.forEachUpdateFunction(elmtId, this.plogs, forEachItemGenFunction, (plog: PlogCanvas) => plog.id.toString(), false, false);
+                    }, ForEach);
+                    ForEach.pop();
+                    Swiper.pop();
                 });
             }
         }, If);

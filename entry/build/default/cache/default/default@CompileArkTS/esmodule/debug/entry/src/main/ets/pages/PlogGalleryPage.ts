@@ -185,6 +185,9 @@ class PlogGalleryPage extends ViewPU {
     aboutToAppear(): void {
         this.loadPlogs();
     }
+    onPageShow(): void {
+        this.loadPlogs();
+    }
     async loadPlogs(): Promise<void> {
         this.isLoading = true;
         try {
@@ -760,13 +763,41 @@ class PlogGalleryPage extends ViewPU {
                                 if (element.type === 'image' || element.type === 'sticker') {
                                     this.ifElseBranchUpdateFunction(0, () => {
                                         this.observeComponentCreation2((elmtId, isInitialRender) => {
-                                            Image.create(element.content);
-                                            Image.width(element.width);
-                                            Image.height(element.height);
-                                            Image.position({ x: element.x, y: element.y });
-                                            Image.rotate({ angle: element.rotation });
-                                            Image.zIndex(element.zIndex);
-                                        }, Image);
+                                            Stack.create();
+                                            Stack.width(element.width);
+                                            Stack.height(element.height);
+                                            Stack.position({ x: element.x, y: element.y });
+                                            Stack.rotate({ angle: element.rotation });
+                                            Stack.zIndex(element.zIndex);
+                                        }, Stack);
+                                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                            If.create();
+                                            if (element.content.startsWith('file://') || element.content.startsWith('content://') ||
+                                                element.content.startsWith('http') || element.content.startsWith('/')) {
+                                                this.ifElseBranchUpdateFunction(0, () => {
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Image.create(element.content);
+                                                        Image.width('100%');
+                                                        Image.height('100%');
+                                                        Image.objectFit(ImageFit.Contain);
+                                                    }, Image);
+                                                });
+                                            }
+                                            else {
+                                                this.ifElseBranchUpdateFunction(1, () => {
+                                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                        Text.create(element.content);
+                                                        Text.fontSize(Math.min(element.width, element.height) * 0.7);
+                                                        Text.width('100%');
+                                                        Text.height('100%');
+                                                        Text.textAlign(TextAlign.Center);
+                                                    }, Text);
+                                                    Text.pop();
+                                                });
+                                            }
+                                        }, If);
+                                        If.pop();
+                                        Stack.pop();
                                     });
                                 }
                                 else if (element.type === 'text') {

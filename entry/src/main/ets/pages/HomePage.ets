@@ -136,7 +136,24 @@ struct HomePage {
     await PreferencesUtil.saveCollections(this.collections);
     this.newCollectionName = '';
     this.showNewCollectionDialog = false;
-    promptAction.showToast({ message: '合集创建成功' });
+    
+    // 自动将选中的随手记添加到新建的合集中
+    if (this.selectedMomentIds.size > 0) {
+      try {
+        for (const id of this.selectedMomentIds) {
+          await DiaryViewModel.updatePostCategory(id, name);
+        }
+        this.selectedMomentIds.clear();
+        this.isMultiSelectMode = false;
+        await this.loadMoments();
+        promptAction.showToast({ message: '合集创建成功并已添加记录' });
+      } catch (error) {
+        console.error('添加到合集失败:', error);
+        promptAction.showToast({ message: '合集创建成功但添加失败' });
+      }
+    } else {
+      promptAction.showToast({ message: '合集创建成功' });
+    }
   }
 
   // ==================== Todo 方法 ====================
@@ -1176,19 +1193,37 @@ struct HomePage {
 
       Blank()
 
-      // 添加位置（底部灰色框打底）
-      Row() {
-        Text(this.newPostLocation ? `📍 ${this.newPostLocation}` : '添加位置')
+      // 添加位置（可输入的文字框）
+      Row({ space: 8 }) {
+        Text('📍')
           .fontSize($r('app.float.font_size_sm'))
-          .fontColor(this.newPostLocation ? $r('app.color.primary_color') : $r('app.color.text_secondary'))
+        TextInput({ placeholder: '添加位置', text: this.newPostLocation })
+          .layoutWeight(1)
+          .fontSize($r('app.float.font_size_sm'))
+          .fontColor($r('app.color.text_primary'))
+          .placeholderColor($r('app.color.text_hint'))
+          .backgroundColor(Color.Transparent)
+          .padding(0)
+          .borderRadius(0)
+          .onChange((value: string) => { this.newPostLocation = value; })
+        if (this.newPostLocation) {
+          Button() {
+            SymbolGlyph($r('sys.symbol.xmark'))
+              .fontSize(12)
+              .fontColor([$r('app.color.text_hint')])
+          }
+          .width(24)
+          .height(24)
+          .backgroundColor(Color.Transparent)
+          .onClick(() => { this.newPostLocation = ''; })
+        }
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+      .height(44)
+      .padding({ left: 12, right: 8, top: 4, bottom: 4 })
       .backgroundColor($r('app.color.background_color'))
       .borderRadius($r('app.float.border_radius_md'))
-      .onClick(() => {
-        this.newPostLocation = '此刻位置';
-      })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height('100%')

@@ -3,7 +3,7 @@ import type common from "@ohos:app.ability.common";
 import AppConstants from "@normalized:N&&&entry/src/main/ets/common/constants/AppConstants&";
 import type { TodoItem } from '../../model/TodoItem';
 import type { DiaryPost } from '../../model/DiaryPost';
-import type { PlogCanvas, CanvasElement, BgType, PatternType } from '../../model/PlogCanvas';
+import type { PlogCanvas, CanvasElement, BgType, PatternType, DrawStroke } from '../../model/PlogCanvas';
 /**
  * 关系型数据库工具类
  * 单例模式管理数据库连接和操作
@@ -98,6 +98,10 @@ export class RDBStoreUtil {
             catch (e) { /* 忽略 */ }
             try {
                 await this.rdbStore.executeSql('ALTER TABLE plog_canvases ADD COLUMN pattern_color TEXT');
+            }
+            catch (e) { /* 忽略 */ }
+            try {
+                await this.rdbStore.executeSql('ALTER TABLE plog_canvases ADD COLUMN draw_strokes TEXT');
             }
             catch (e) { /* 忽略 */ }
             console.info('数据表创建完成');
@@ -445,7 +449,8 @@ export class RDBStoreUtil {
                 'pattern_spacing': plog.patternSpacing ?? 20,
                 'has_pattern': plog.hasPattern ? 1 : 0,
                 'pattern_color': plog.patternColor ?? '#E0E0E0',
-                'custom_bg_uri': plog.customBgUri ?? ''
+                'custom_bg_uri': plog.customBgUri ?? '',
+                'draw_strokes': plog.drawStrokes ? JSON.stringify(plog.drawStrokes) : ''
             };
             return await this.rdbStore.insert(AppConstants.TABLE_PLOG_CANVASES, valuesBucket);
         }
@@ -477,7 +482,8 @@ export class RDBStoreUtil {
                 'pattern_spacing': plog.patternSpacing ?? 20,
                 'has_pattern': plog.hasPattern ? 1 : 0,
                 'pattern_color': plog.patternColor ?? '#E0E0E0',
-                'custom_bg_uri': plog.customBgUri ?? ''
+                'custom_bg_uri': plog.customBgUri ?? '',
+                'draw_strokes': plog.drawStrokes ? JSON.stringify(plog.drawStrokes) : ''
             };
             const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_PLOG_CANVASES);
             predicates.equalTo('id', plog.id);
@@ -583,6 +589,15 @@ export class RDBStoreUtil {
             }
         }
         catch (e) { /* 旧表没有此列 */ }
+        // draw_strokes 字段
+        let drawStrokes: DrawStroke[] = [];
+        try {
+            const dsVal = resultSet.getValue(resultSet.getColumnIndex('draw_strokes')) as string;
+            if (dsVal) {
+                drawStrokes = JSON.parse(dsVal) as DrawStroke[];
+            }
+        }
+        catch (e) { /* 旧表没有此列 */ }
         return {
             id: idVal as number,
             date: dateVal as string,
@@ -598,6 +613,7 @@ export class RDBStoreUtil {
             patternSpacing: patternSpacing,
             customBgUri: customBgUri,
             elements: JSON.parse(elementsVal as string),
+            drawStrokes: drawStrokes,
             diaryIds: this.parseDiaryIds(diaryIdsVal as string),
             createdAt: createdAtVal as number,
             thumbnail: thumbnailVal as string
@@ -741,6 +757,7 @@ export interface PlogInsertParams {
     patternSpacing?: number;
     customBgUri?: string;
     elements: CanvasElement[];
+    drawStrokes?: DrawStroke[];
     diaryIds?: number[];
     createdAt: number;
     thumbnail: string;
