@@ -319,6 +319,58 @@
     {
       "name": "todo_save",
       "value": "保存"
+    },
+    {
+      "name": "moment_multi_select",
+      "value": "多选"
+    },
+    {
+      "name": "moment_add",
+      "value": "添加"
+    },
+    {
+      "name": "moment_more",
+      "value": "更多"
+    },
+    {
+      "name": "moment_select_all",
+      "value": "全选"
+    },
+    {
+      "name": "moment_select_items",
+      "value": "选择项目"
+    },
+    {
+      "name": "moment_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "moment_add_to_collection",
+      "value": "添加到"
+    },
+    {
+      "name": "moment_make_plog",
+      "value": "制作手账"
+    },
+    {
+      "name": "moment_delete_selected",
+      "value": "删除"
+    },
+    {
+      "name": "moment_delete_confirm_title",
+      "value": "确认删除"
+    },
+    {
+      "name": "moment_delete_confirm_msg",
+      "value": "确定要删除选中的 %d 条记录吗？此操作不可恢复。"
+    },
+    {
+      "name": "moment_more_collections",
+      "value": "合集"
+    },
+    {
+      "name": "moment_more_plog_book",
+      "value": "手账本"
     }
   ]
 }

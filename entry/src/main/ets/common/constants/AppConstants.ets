@@ -49,8 +49,17 @@ export class AppConstants {
       date TEXT NOT NULL,
       background_image TEXT,
       elements TEXT NOT NULL,
+      diary_ids TEXT,
       created_at INTEGER NOT NULL,
-      thumbnail TEXT
+      thumbnail TEXT,
+      bg_type TEXT,
+      bg_color TEXT,
+      gradient_colors TEXT,
+      gradient_angle INTEGER,
+      pattern_type TEXT,
+      pattern_thickness INTEGER,
+      pattern_spacing INTEGER,
+      custom_bg_uri TEXT
     )
   `;
 
@@ -66,6 +75,7 @@ export class AppConstants {
   static readonly PREF_THEME = 'theme_mode';
   static readonly PREF_FIRST_LAUNCH = 'first_launch';
   static readonly PREF_LAST_DATE = 'last_open_date';
+  static readonly PREF_COLLECTIONS = 'collections_list';
 }
 
 export default AppConstants;

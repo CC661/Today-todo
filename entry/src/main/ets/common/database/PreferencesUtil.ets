@@ -208,6 +208,44 @@ export class PreferencesUtil {
   async setLastOpenDate(date: string): Promise<void> {
     await this.saveString(AppConstants.PREF_LAST_DATE, date);
   }
+
+  /**
+   * 获取合集列表
+   */
+  async getCollections(): Promise<string[]> {
+    const json = await this.getString(AppConstants.PREF_COLLECTIONS, '[]');
+    try {
+      return JSON.parse(json) as string[];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * 保存合集列表
+   */
+  async saveCollections(collections: string[]): Promise<void> {
+    await this.saveString(AppConstants.PREF_COLLECTIONS, JSON.stringify(collections));
+  }
+
+  /**
+   * 获取自定义贴纸列表
+   */
+  async getCustomStickers(): Promise<string[]> {
+    const json = await this.getString('custom_stickers', '[]');
+    try {
+      return JSON.parse(json) as string[];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * 保存自定义贴纸列表
+   */
+  async saveCustomStickers(stickers: string[]): Promise<void> {
+    await this.saveString('custom_stickers', JSON.stringify(stickers));
+  }
 }
 
 export default PreferencesUtil.getInstance();

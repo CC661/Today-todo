@@ -2,193 +2,378 @@ import CategoryViewModel from '../viewmodel/CategoryViewModel';
 import type { DiaryPost } from '../model/DiaryPost';
 import { TemplateType } from '../model/TemplateData';
 import PostCardComponent from '../components/diary/PostCard';
+import { router } from '@kit.ArkUI';
+import PreferencesUtil from '../common/database/PreferencesUtil';
+import DiaryViewModel from '../viewmodel/DiaryViewModel';
+import { promptAction } from '@kit.ArkUI';
 
 /**
- * 分类档案袋页 - 模板化分组记录
+ * 合集页 - 展示用户自定义合集及其中记录
  */
 @Entry
 @Component
 struct CategoryPage {
-  @State selectedCategory: string = TemplateType.READING;
+  @State collections: string[] = [];
+  @State selectedCollection: string = '';
   @State posts: DiaryPost[] = [];
   @State isLoading: boolean = false;
-  @State categoryStats: Map<string, number> = new Map();
+
+  // 侧边栏
+  @State showSidebar: boolean = false;
+
+  // 新建合集弹窗
+  @State showNewCollectionDialog: boolean = false;
+  @State newCollectionName: string = '';
 
   aboutToAppear(): void {
-    this.loadCategoryStats();
-    this.loadPosts();
+    this.loadCollections();
   }
 
-  async loadCategoryStats(): Promise<void> {
+  async loadCollections(): Promise<void> {
     try {
-      this.categoryStats = await CategoryViewModel.getCategoryStats();
+      const savedCollections = await PreferencesUtil.getCollections();
+      const categorySet = new Set<string>();
+      const allPosts = await DiaryViewModel.getAllPosts();
+      for (const m of allPosts) {
+        if (m.category && m.category.trim()) {
+          categorySet.add(m.category.trim());
+        }
+      }
+      const merged: string[] = [];
+      const seen = new Set<string>();
+      for (const c of savedCollections) {
+        if (!seen.has(c)) {
+          seen.add(c);
+          merged.push(c);
+        }
+      }
+      categorySet.forEach((c: string) => {
+        if (!seen.has(c)) {
+          seen.add(c);
+          merged.push(c);
+        }
+      });
+      this.collections = merged;
+      if (merged.length > 0) {
+        this.selectedCollection = merged[0];
+        await this.loadPosts();
+      }
     } catch (error) {
-      console.error('加载分类统计失败:', error);
+      console.error('加载合集列表失败:', error);
     }
   }
 
   async loadPosts(): Promise<void> {
+    if (!this.selectedCollection) {
+      return;
+    }
     this.isLoading = true;
     try {
-      switch (this.selectedCategory) {
-        case TemplateType.READING:
-          this.posts = await CategoryViewModel.getReadingPosts();
-          break;
-        case TemplateType.EXPENSE:
-          this.posts = await CategoryViewModel.getExpensePosts();
-          break;
-        case TemplateType.OOTD:
-          this.posts = await CategoryViewModel.getOOTDPosts();
-          break;
-      }
+      this.posts = await DiaryViewModel.getPostsByCategory(this.selectedCollection);
     } catch (error) {
-      console.error('加载分类动态失败:', error);
+      console.error('加载合集记录失败:', error);
     } finally {
       this.isLoading = false;
     }
   }
 
-  onCategorySelected(category: string): void {
-    this.selectedCategory = category;
+  onCollectionSelected(collection: string): void {
+    this.selectedCollection = collection;
     this.loadPosts();
   }
 
+  async createNewCollection(): Promise<void> {
+    const name = this.newCollectionName.trim();
+    if (!name || name.length > 10) {
+      return;
+    }
+    if (this.collections.includes(name)) {
+      promptAction.showToast({ message: '该合集已存在' });
+      return;
+    }
+    this.collections.push(name);
+    await PreferencesUtil.saveCollections(this.collections);
+    this.newCollectionName = '';
+    this.showNewCollectionDialog = false;
+    this.selectedCollection = name;
+    await this.loadPosts();
+    promptAction.showToast({ message: '合集创建成功' });
+  }
+
   build() {
-    Column() {
-      // 标题栏
-      Row() {
-        Text('分类档案')
-          .fontSize($r('app.float.font_size_xxl'))
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+    Stack({ alignContent: Alignment.TopStart }) {
+      Column() {
+        // 标题栏
+        Row() {
+          Row({ space: 12 }) {
+            // 返回按钮
+            Button() {
+              SymbolGlyph($r('sys.symbol.chevron_left'))
+                .fontSize(18)
+                .fontColor([$r('app.color.text_secondary')])
+            }
+            .width(32)
+            .height(32)
+            .backgroundColor(Color.Transparent)
+            .onClick(() => {
+              router.back();
+            })
 
-      // 分类选择器
-      Row() {
-        // 阅读记录
-        Column() {
-          Text('📚')
-            .fontSize(24)
-            .margin({ bottom: 4 })
-
-          Text($r('app.string.reading_template_title'))
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor(this.selectedCategory === TemplateType.READING ?
-              $r('app.color.primary_color') : $r('app.color.text_secondary'))
-
-          if (this.categoryStats.has(TemplateType.READING)) {
-            Text(`${this.categoryStats.get(TemplateType.READING)}条`)
-              .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.text_hint'))
-              .margin({ top: 2 })
+            // 列表按钮
+            Button() {
+              SymbolGlyph($r('sys.symbol.list_bullet'))
+                .fontSize(18)
+                .fontColor([$r('app.color.text_secondary')])
+            }
+            .width(32)
+            .height(32)
+            .backgroundColor(Color.Transparent)
+            .onClick(() => {
+              animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
+                this.showSidebar = !this.showSidebar;
+              });
+            })
           }
-        }
-        .layoutWeight(1)
-        .padding(12)
-        .backgroundColor(this.selectedCategory === TemplateType.READING ?
-          '#10FF6B35' : $r('app.color.card_background'))
-        .borderRadius($r('app.float.border_radius_md'))
-        .onClick(() => this.onCategorySelected(TemplateType.READING))
 
-        // 记账
-        Column() {
-          Text('💰')
-            .fontSize(24)
-            .margin({ bottom: 4 })
+          Blank()
 
-          Text($r('app.string.expense_template_title'))
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor(this.selectedCategory === TemplateType.EXPENSE ?
-              $r('app.color.primary_color') : $r('app.color.text_secondary'))
-
-          if (this.categoryStats.has(TemplateType.EXPENSE)) {
-            Text(`${this.categoryStats.get(TemplateType.EXPENSE)}条`)
-              .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.text_hint'))
-              .margin({ top: 2 })
-          }
-        }
-        .layoutWeight(1)
-        .padding(12)
-        .backgroundColor(this.selectedCategory === TemplateType.EXPENSE ?
-          '#10FF6B35' : $r('app.color.card_background'))
-        .borderRadius($r('app.float.border_radius_md'))
-        .margin({ left: 8 })
-        .onClick(() => this.onCategorySelected(TemplateType.EXPENSE))
-
-        // OOTD
-        Column() {
-          Text('👗')
-            .fontSize(24)
-            .margin({ bottom: 4 })
-
-          Text($r('app.string.ootd_template_title'))
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor(this.selectedCategory === TemplateType.OOTD ?
-              $r('app.color.primary_color') : $r('app.color.text_secondary'))
-
-          if (this.categoryStats.has(TemplateType.OOTD)) {
-            Text(`${this.categoryStats.get(TemplateType.OOTD)}条`)
-              .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.text_hint'))
-              .margin({ top: 2 })
-          }
-        }
-        .layoutWeight(1)
-        .padding(12)
-        .backgroundColor(this.selectedCategory === TemplateType.OOTD ?
-          '#10FF6B35' : $r('app.color.card_background'))
-        .borderRadius($r('app.float.border_radius_md'))
-        .margin({ left: 8 })
-        .onClick(() => this.onCategorySelected(TemplateType.OOTD))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 8, bottom: 12 })
-
-      // 分隔线
-      Divider()
-        .color($r('app.color.divider_color'))
-        .margin({ bottom: 8 })
-
-      // 动态列表
-      if (this.isLoading) {
-        LoadingProgress()
-          .width(40)
-          .height(40)
-          .layoutWeight(1)
-      } else if (this.posts.length === 0) {
-        Column() {
-          Text('📝')
-            .fontSize(48)
-            .margin({ bottom: 12 })
-
-          Text('该分类下还没有记录')
-            .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_hint'))
+          Text('合集')
+            .fontSize($r('app.float.font_size_lg'))
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
         }
         .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else {
-        Scroll() {
-          Column() {
-            ForEach(this.posts, (post: DiaryPost) => {
-              PostCardComponent({ post: post })
-            }, (post: DiaryPost) => post.id.toString())
+        .padding({ left: 16, right: 16, top: 16, bottom: 12 })
+
+        Divider()
+          .color($r('app.color.divider_color'))
+
+        // 合集名称标题
+        if (this.selectedCollection) {
+          Row() {
+            Text(this.selectedCollection)
+              .fontSize($r('app.float.font_size_xl'))
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+
+            Blank()
+
+            Text(`${this.posts.length}条记录`)
+              .fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_hint'))
           }
           .width('100%')
-          .padding(16)
+          .padding({ left: 16, right: 16, top: 16, bottom: 8 })
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
+
+        // 记录列表
+        if (this.isLoading) {
+          Column() {
+            LoadingProgress()
+              .width(40)
+              .height(40)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Start)
+          .padding({ top: 24 })
+        } else if (this.posts.length === 0) {
+          Column() {
+            Text('📝')
+              .fontSize(48)
+              .margin({ bottom: 12 })
+
+            Text('该合集中还没有记录')
+              .fontSize($r('app.float.font_size_base'))
+              .fontColor($r('app.color.text_hint'))
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Start)
+          .padding({ top: 24 })
+        } else {
+          Scroll() {
+            Column() {
+              ForEach(this.posts, (post: DiaryPost) => {
+                PostCardComponent({ post: post })
+              }, (post: DiaryPost) => post.id.toString())
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 8, bottom: 100 })
+          }
+          .layoutWeight(1)
+          .align(Alignment.TopStart)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.background_color'))
+
+      // 侧边栏
+      if (this.showSidebar) {
+        Column() {
+          // 合集列表
+          Scroll() {
+            Column({ space: 4 }) {
+              ForEach(this.collections, (collection: string) => {
+                Row() {
+                  Text(collection)
+                    .fontSize($r('app.float.font_size_base'))
+                    .fontColor(this.selectedCollection === collection ?
+                      $r('app.color.primary_color') : $r('app.color.text_primary'))
+                  Blank()
+                  if (this.selectedCollection === collection) {
+                    Text('●')
+                      .fontSize(8)
+                      .fontColor($r('app.color.primary_color'))
+                  }
+                }
+                .width('100%')
+                .height(44)
+                .padding({ left: 16, right: 16 })
+                .backgroundColor(this.selectedCollection === collection ?
+                  '#10FF6B35' : Color.Transparent)
+                .borderRadius($r('app.float.border_radius_md'))
+                .onClick(() => {
+                  this.onCollectionSelected(collection);
+                  animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showSidebar = false;
+                  });
+                })
+              })
+            }
+            .width('100%')
+            .padding({ left: 12, right: 12 })
+          }
+          .scrollBar(BarState.Off)
+          .align(Alignment.TopStart)
+          .margin({ top: 12, left: 4, right: 4 })
+
+          Divider()
+            .color($r('app.color.divider_color'))
+            .margin({ left: 16, right: 16, top: 8, bottom: 8 })
+
+          // 添加列表按钮
+          Row() {
+            Text('＋ 添加列表')
+              .fontSize($r('app.float.font_size_base'))
+              .fontColor($r('app.color.text_primary'))
+          }
+          .width('100%')
+          .height(44)
+          .padding({ left: 16, right: 16 })
+          .backgroundColor($r('app.color.background_color'))
+          .borderRadius($r('app.float.border_radius_md'))
+          .margin({ left: 12, right: 12, bottom: 16 })
+          .onClick(() => {
+            this.showSidebar = false;
+            this.newCollectionName = '';
+            animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+              this.showNewCollectionDialog = true;
+            });
+          })
+        }
+        .width(180)
+        .height('calc(100% - 60px)')
+        .position({ x: 0, y: 60 })
+        .backgroundColor($r('app.color.card_background'))
+        .borderRadius($r('app.float.border_radius_xl'))
+        .zIndex(100)
+        .shadow({ radius: 16, color: '#20000000', offsetX: 4, offsetY: 0 })
+        .transition(TransitionEffect.translate({ x: '-100%' })
+          .animation({ duration: 250, curve: Curve.EaseOut }))
+      }
+
+      // 新建合集弹窗
+      if (this.showNewCollectionDialog) {
+        Column() {
+          Blank()
+
+          Column() {
+            // 标题栏
+            Row() {
+              Button() {
+                SymbolGlyph($r('sys.symbol.chevron_left'))
+                  .fontSize(18)
+                  .fontColor([$r('app.color.text_secondary')])
+              }
+              .width(32)
+              .height(32)
+              .backgroundColor(Color.Transparent)
+              .onClick(() => {
+                animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                  this.showNewCollectionDialog = false;
+                });
+              })
+
+              Blank()
+
+              Text('新建合集')
+                .fontSize($r('app.float.font_size_lg'))
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+
+              Blank()
+
+              Text('创建')
+                .fontSize($r('app.float.font_size_base'))
+                .fontColor(this.newCollectionName.trim().length > 0 && this.newCollectionName.trim().length <= 10
+                  ? $r('app.color.primary_color') : $r('app.color.text_hint'))
+                .onClick(() => this.createNewCollection())
+            }
+            .width('100%')
+            .margin({ bottom: 20 })
+
+            // 合集名称输入框
+            TextInput({
+              placeholder: '请输入合集名称（不多于 10 字）',
+              text: this.newCollectionName
+            })
+              .width('100%')
+              .height(48)
+              .fontSize($r('app.float.font_size_base'))
+              .backgroundColor($r('app.color.background_color'))
+              .borderRadius($r('app.float.border_radius_md'))
+              .padding({ left: 12, right: 12 })
+              .border({
+                width: this.newCollectionName.length > 10 ? 1 : 0,
+                color: this.newCollectionName.length > 10 ? '#FF4D4F' : Color.Transparent
+              })
+              .fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : $r('app.color.text_primary'))
+              .onChange((value: string) => { this.newCollectionName = value; })
+              .onSubmit(() => { this.createNewCollection(); })
+
+            // 字数提示
+            if (this.newCollectionName.length > 10) {
+              Text('合集名称不能超过10个字')
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor('#FF4D4F')
+                .width('100%')
+                .margin({ top: 6 })
+            }
+          }
+          .width('100%')
+          .padding(20)
+          .backgroundColor($r('app.color.card_background'))
+          .borderRadius({ topLeft: $r('app.float.border_radius_xl'), topRight: $r('app.float.border_radius_xl') })
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#80000000')
+        .justifyContent(FlexAlign.End)
+        .onClick(() => {
+          animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+            this.showNewCollectionDialog = false;
+          });
+        })
+        .transition(TransitionEffect.translate({ y: '100%' })
+          .animation({ duration: 250, curve: Curve.EaseOut }))
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.background_color'))
   }
 }
 
