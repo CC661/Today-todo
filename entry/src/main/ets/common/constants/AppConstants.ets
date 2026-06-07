@@ -19,7 +19,13 @@ export class AppConstants {
       status TEXT DEFAULT 'pending',
       order_num INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL,
-      is_carry_over INTEGER DEFAULT 0
+      is_carry_over INTEGER DEFAULT 0,
+      remind_time INTEGER DEFAULT 0,
+      remark TEXT DEFAULT '',
+      location TEXT DEFAULT '',
+      tag TEXT DEFAULT '',
+      flagged INTEGER DEFAULT 0,
+      image_uris TEXT DEFAULT ''
     )
   `;
 

@@ -303,6 +303,22 @@
     {
       "name": "plog_generate_success",
       "value": "手账生成成功"
+    },
+    {
+      "name": "todo_remind",
+      "value": "时间提醒"
+    },
+    {
+      "name": "todo_no_remind",
+      "value": "不提醒"
+    },
+    {
+      "name": "todo_remark_placeholder",
+      "value": "添加备注..."
+    },
+    {
+      "name": "todo_save",
+      "value": "保存"
     }
   ]
 }

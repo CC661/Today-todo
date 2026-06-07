@@ -6,7 +6,7 @@
     },
     {
       "name": "primary_color",
-      "value": "#FF6B35"
+      "value": "#FF9500"
     },
     {
       "name": "secondary_color",
@@ -50,7 +50,7 @@
     },
     {
       "name": "todo_pending",
-      "value": "#FF6B35"
+      "value": "#FF9500"
     },
     {
       "name": "todo_completed",
@@ -58,11 +58,11 @@
     },
     {
       "name": "calendar_today",
-      "value": "#FF6B35"
+      "value": "#FF9500"
     },
     {
       "name": "calendar_selected",
-      "value": "#004E89"
+      "value": "#FF9500"
     }
   ]
 }
