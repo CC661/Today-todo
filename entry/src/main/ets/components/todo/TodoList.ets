@@ -1,12 +1,22 @@
 import type { TodoItem } from '../../model/TodoItem';
+import type { ThemeColors } from '../../common/theme/ThemeManager';
 import { TodoItemComponent } from './TodoItem';
 
 /**
  * 待办列表组件 - iOS 提醒事项风格
  * 支持长按拖拽排序，内联编辑
+ * 支持动态主题（通过 @StorageLink 读取 app_active_theme）
  */
 @Component
 export struct TodoListComponent {
+  @StorageLink('app_active_theme') currentColors: ThemeColors = {
+    primary: '#ffac34',
+    bgMain: '#fdfaf2',
+    bgCard: '#ffffff',
+    textMain: '#3e2723',
+    textMuted: '#ffcd84',
+    border: '#f6f0e2'
+  };
   @Prop todos: TodoItem[];
   @Prop editingTodoId: number = 0;
   @Prop isAddingRemark: boolean = false;
@@ -43,11 +53,11 @@ export struct TodoListComponent {
     Row() {
       Text(todo.content || '')
         .fontSize(16)
-        .fontColor('#1D1D1F')
+        .fontColor(this.currentColors.textMain)
     }
     .width('90%')
     .height(44)
-    .backgroundColor(Color.White)
+    .backgroundColor(this.currentColors.bgCard)
     .borderRadius(8)
     .shadow({ radius: 8, color: '#20000000' })
     .padding({ left: 16, right: 16 })
@@ -83,10 +93,9 @@ export struct TodoListComponent {
     .width('100%')
     .layoutWeight(1)
     .scrollBar(BarState.Off)
-    .divider({ strokeWidth: 0.5, color: '#E5E5EA', startMargin: 48 })
+    .divider({ strokeWidth: 0.5, color: this.currentColors.border, startMargin: 48 })
     .editMode(true)
     .onItemDragStart((event: ItemDragInfo, itemIndex: number) => {
-      // 🌟 使用修改后的新名字
       return this.CustomDragPreviewBuilder(this.todos[itemIndex]);
     })
     .onItemDrop((event: ItemDragInfo, itemIndex: number, insertIndex: number, isSuccess: boolean) => {
@@ -112,9 +121,18 @@ export struct TodoListComponent {
 /**
  * 内联编辑输入组件 - iOS 风格
  * 支持备注输入框和提醒时间展示
+ * 支持动态主题
  */
 @Component
 struct InlineEditInputView {
+  @StorageLink('app_active_theme') currentColors: ThemeColors = {
+    primary: '#ffac34',
+    bgMain: '#fdfaf2',
+    bgCard: '#ffffff',
+    textMain: '#3e2723',
+    textMuted: '#ffcd84',
+    border: '#f6f0e2'
+  };
   @Prop todo: TodoItem;
   @Prop isAddingRemark: boolean = false;
   @State private inputBuffer: string = '';
@@ -145,7 +163,7 @@ struct InlineEditInputView {
             .width(22)
             .height(22)
             .fill(Color.Transparent)
-            .stroke($r('app.color.text_hint'))
+            .stroke(this.currentColors.textMuted)
             .strokeWidth(1.5)
         }
         .width(40)
@@ -157,7 +175,7 @@ struct InlineEditInputView {
             .type(InputType.Normal)
             .id(`TodoInput_${this.todo.id}`)
             .fontSize($r('app.float.font_size_md'))
-            .fontColor($r('app.color.text_primary'))
+            .fontColor(this.currentColors.textMain)
             .backgroundColor(Color.Transparent)
             .padding(0)
             .width('100%')
@@ -187,8 +205,8 @@ struct InlineEditInputView {
           if (this.isAddingRemark) {
             TextInput({ text: this.remarkBuffer, placeholder: $r('app.string.todo_remark_placeholder') })
               .fontSize(13)
-              .fontColor('#8E8E93')
-              .backgroundColor('#F5F5F7')
+              .fontColor(this.currentColors.textMuted)
+              .backgroundColor(this.currentColors.bgMain)
               .borderRadius(6)
               .padding({ left: 8, right: 8 })
               .width('100%')
@@ -203,7 +221,7 @@ struct InlineEditInputView {
           if (!this.isAddingRemark) {
             Text($r('app.string.todo_remark_placeholder'))
               .fontSize(13)
-              .fontColor('#C7C7CC')
+              .fontColor(this.currentColors.textMuted)
               .margin({ top: 4 })
               .width('100%')
               .onClick(() => {
@@ -218,10 +236,10 @@ struct InlineEditInputView {
             Row({ space: 2 }) {
               SymbolGlyph($r('sys.symbol.alarm'))
                 .fontSize(11)
-                .fontColor([$r('app.color.primary_color')])
+                .fontColor([this.currentColors.primary])
               Text(this.formatRemind(this.todo.remindTime))
                 .fontSize(12)
-                .fontColor($r('app.color.primary_color'))
+                .fontColor(this.currentColors.primary)
             }
             .margin({ top: 6 })
             .width('100%')
@@ -235,6 +253,6 @@ struct InlineEditInputView {
     }
     .width('100%')
     .padding({ top: 10, bottom: 10, left: 16, right: 16 })
-    .backgroundColor(Color.White)
+    .backgroundColor(this.currentColors.bgCard)
   }
 }

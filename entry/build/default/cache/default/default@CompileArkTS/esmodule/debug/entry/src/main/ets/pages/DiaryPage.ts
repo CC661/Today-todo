@@ -139,7 +139,7 @@ class DiaryPage extends ViewPU {
             // 1. 主页面内容
             Column.height('100%');
             // 1. 主页面内容
-            Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Row.create();
@@ -148,9 +148,9 @@ class DiaryPage extends ViewPU {
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('生活记录');
-            Text.fontSize({ "id": 16777320, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777337, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Bold);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         Row.pop();
@@ -182,14 +182,14 @@ class DiaryPage extends ViewPU {
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('还没有动态');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('点击右下角按钮发布第一条动态');
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.margin({ top: 4 });
                     }, Text);
                     Text.pop();
@@ -312,9 +312,9 @@ class DiaryPage extends ViewPU {
                         // 真正的输入白色卡片
                         Column.padding(20);
                         // 真正的输入白色卡片
-                        Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 真正的输入白色卡片
-                        Column.borderRadius({ "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.borderRadius({ "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 真正的输入白色卡片
                         Column.margin({ bottom: 24 });
                         // 真正的输入白色卡片
@@ -322,7 +322,7 @@ class DiaryPage extends ViewPU {
                     }, Column);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('发布动态');
-                        Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Medium);
                         Text.margin({ bottom: 16 });
                     }, Text);
@@ -338,9 +338,9 @@ class DiaryPage extends ViewPU {
                         // 💡 修复：严格模式下通过 $$ 实现真正的双向数据通道绑定，确保打字能显示
                         TextArea.height(120);
                         // 💡 修复：严格模式下通过 $$ 实现真正的双向数据通道绑定，确保打字能显示
-                        TextArea.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextArea.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 💡 修复：严格模式下通过 $$ 实现真正的双向数据通道绑定，确保打字能显示
-                        TextArea.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextArea.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, TextArea);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Row.create();
@@ -350,8 +350,8 @@ class DiaryPage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Button.createWithLabel('取消');
                         Button.layoutWeight(1);
-                        Button.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Button.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.onClick(() => {
                             this.showPostDialog = false;
                             this.newPostContent = '';
@@ -361,7 +361,7 @@ class DiaryPage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Button.createWithLabel('发布');
                         Button.layoutWeight(1);
-                        Button.backgroundColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.backgroundColor({ "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.margin({ left: 12 });
                         Button.onClick(() => {
                             this.createPost();

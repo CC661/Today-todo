@@ -45,467 +45,483 @@
 			"id":	"0x0100000A"
 		}, {
 			"type":	"string",
-			"name":	"moment_add_location",
+			"name":	"moment_add",
 			"id":	"0x0100000B"
 		}, {
 			"type":	"string",
-			"name":	"moment_add_photo",
+			"name":	"moment_add_location",
 			"id":	"0x0100000C"
 		}, {
 			"type":	"string",
-			"name":	"moment_collection_created",
+			"name":	"moment_add_photo",
 			"id":	"0x0100000D"
 		}, {
 			"type":	"string",
-			"name":	"moment_collection_name",
+			"name":	"moment_add_to_collection",
 			"id":	"0x0100000E"
 		}, {
 			"type":	"string",
-			"name":	"moment_collection_name_placeholder",
+			"name":	"moment_cancel",
 			"id":	"0x0100000F"
 		}, {
 			"type":	"string",
-			"name":	"moment_create_collection",
+			"name":	"moment_collection_created",
 			"id":	"0x01000010"
 		}, {
 			"type":	"string",
-			"name":	"moment_delete",
+			"name":	"moment_collection_name",
 			"id":	"0x01000011"
 		}, {
 			"type":	"string",
-			"name":	"moment_delete_confirm",
+			"name":	"moment_collection_name_placeholder",
 			"id":	"0x01000012"
 		}, {
 			"type":	"string",
-			"name":	"moment_manage",
+			"name":	"moment_create_collection",
 			"id":	"0x01000013"
 		}, {
 			"type":	"string",
-			"name":	"moment_manage_daily",
+			"name":	"moment_delete",
 			"id":	"0x01000014"
 		}, {
 			"type":	"string",
-			"name":	"moment_no_posts",
+			"name":	"moment_delete_confirm",
 			"id":	"0x01000015"
 		}, {
 			"type":	"string",
-			"name":	"moment_no_posts_hint",
+			"name":	"moment_delete_confirm_msg",
 			"id":	"0x01000016"
 		}, {
 			"type":	"string",
-			"name":	"moment_organize_collection",
+			"name":	"moment_delete_confirm_title",
 			"id":	"0x01000017"
 		}, {
 			"type":	"string",
-			"name":	"moment_post_placeholder",
+			"name":	"moment_delete_selected",
 			"id":	"0x01000018"
 		}, {
 			"type":	"string",
-			"name":	"moment_posted_at",
+			"name":	"moment_make_plog",
 			"id":	"0x01000019"
 		}, {
 			"type":	"string",
-			"name":	"moment_publish",
+			"name":	"moment_manage",
 			"id":	"0x0100001A"
 		}, {
 			"type":	"string",
-			"name":	"moment_select_posts",
+			"name":	"moment_manage_daily",
 			"id":	"0x0100001B"
 		}, {
 			"type":	"string",
-			"name":	"moment_title",
+			"name":	"moment_more",
 			"id":	"0x0100001C"
 		}, {
 			"type":	"string",
-			"name":	"moment_to_plog",
+			"name":	"moment_more_collections",
 			"id":	"0x0100001D"
 		}, {
 			"type":	"string",
-			"name":	"moment_view_collections",
+			"name":	"moment_more_plog_book",
 			"id":	"0x0100001E"
 		}, {
 			"type":	"string",
-			"name":	"moment_view_plog",
+			"name":	"moment_multi_select",
 			"id":	"0x0100001F"
 		}, {
 			"type":	"string",
-			"name":	"my_plogs",
+			"name":	"moment_no_posts",
 			"id":	"0x01000020"
 		}, {
 			"type":	"string",
-			"name":	"one_click_plog",
+			"name":	"moment_no_posts_hint",
 			"id":	"0x01000021"
 		}, {
 			"type":	"string",
-			"name":	"ootd_template_title",
+			"name":	"moment_organize_collection",
 			"id":	"0x01000022"
 		}, {
 			"type":	"string",
-			"name":	"plog_create_new",
+			"name":	"moment_post_placeholder",
 			"id":	"0x01000023"
 		}, {
 			"type":	"string",
-			"name":	"plog_empty_hint",
+			"name":	"moment_posted_at",
 			"id":	"0x01000024"
 		}, {
 			"type":	"string",
-			"name":	"plog_empty_sub_hint",
+			"name":	"moment_publish",
 			"id":	"0x01000025"
 		}, {
 			"type":	"string",
-			"name":	"plog_generate_from_posts",
+			"name":	"moment_select_all",
 			"id":	"0x01000026"
 		}, {
 			"type":	"string",
-			"name":	"plog_generate_success",
+			"name":	"moment_select_items",
 			"id":	"0x01000027"
 		}, {
 			"type":	"string",
-			"name":	"post_content_placeholder",
+			"name":	"moment_select_posts",
 			"id":	"0x01000028"
 		}, {
 			"type":	"string",
-			"name":	"publish",
+			"name":	"moment_title",
 			"id":	"0x01000029"
 		}, {
 			"type":	"string",
-			"name":	"quick_post_form_desc",
+			"name":	"moment_to_plog",
 			"id":	"0x0100002A"
 		}, {
 			"type":	"string",
-			"name":	"quick_post_form_label",
+			"name":	"moment_view_collections",
 			"id":	"0x0100002B"
 		}, {
 			"type":	"string",
-			"name":	"read_media_reason",
+			"name":	"moment_view_plog",
 			"id":	"0x0100002C"
 		}, {
 			"type":	"string",
-			"name":	"reading_template_title",
+			"name":	"my_plogs",
 			"id":	"0x0100002D"
 		}, {
 			"type":	"string",
-			"name":	"select_location",
+			"name":	"one_click_plog",
 			"id":	"0x0100002E"
 		}, {
 			"type":	"string",
-			"name":	"setting_about",
+			"name":	"ootd_template_title",
 			"id":	"0x0100002F"
 		}, {
 			"type":	"string",
-			"name":	"setting_appearance",
+			"name":	"plog_create_new",
 			"id":	"0x01000030"
 		}, {
 			"type":	"string",
-			"name":	"setting_cancel",
+			"name":	"plog_empty_hint",
 			"id":	"0x01000031"
 		}, {
 			"type":	"string",
-			"name":	"setting_clear_confirm_msg",
+			"name":	"plog_empty_sub_hint",
 			"id":	"0x01000032"
 		}, {
 			"type":	"string",
-			"name":	"setting_clear_confirm_title",
+			"name":	"plog_generate_from_posts",
 			"id":	"0x01000033"
 		}, {
 			"type":	"string",
-			"name":	"setting_clear_data",
+			"name":	"plog_generate_success",
 			"id":	"0x01000034"
 		}, {
 			"type":	"string",
-			"name":	"setting_clear_data_desc",
+			"name":	"post_content_placeholder",
 			"id":	"0x01000035"
 		}, {
 			"type":	"string",
-			"name":	"setting_cleared",
+			"name":	"publish",
 			"id":	"0x01000036"
 		}, {
 			"type":	"string",
-			"name":	"setting_confirm",
+			"name":	"quick_post_form_desc",
 			"id":	"0x01000037"
 		}, {
 			"type":	"string",
-			"name":	"setting_dark_mode",
+			"name":	"quick_post_form_label",
 			"id":	"0x01000038"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_blue",
+			"name":	"read_media_reason",
 			"id":	"0x01000039"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_desc",
+			"name":	"reading_template_title",
 			"id":	"0x0100003A"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_green",
+			"name":	"select_location",
 			"id":	"0x0100003B"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_orange",
+			"name":	"setting_about",
 			"id":	"0x0100003C"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_pink",
+			"name":	"setting_appearance",
 			"id":	"0x0100003D"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_purple",
+			"name":	"setting_cancel",
 			"id":	"0x0100003E"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_selected",
+			"name":	"setting_clear_confirm_msg",
 			"id":	"0x0100003F"
 		}, {
 			"type":	"string",
-			"name":	"setting_theme_title",
+			"name":	"setting_clear_confirm_title",
 			"id":	"0x01000040"
 		}, {
 			"type":	"string",
-			"name":	"setting_title",
+			"name":	"setting_clear_data",
 			"id":	"0x01000041"
 		}, {
 			"type":	"string",
-			"name":	"setting_version",
+			"name":	"setting_clear_data_desc",
 			"id":	"0x01000042"
 		}, {
 			"type":	"string",
-			"name":	"tab_category",
+			"name":	"setting_cleared",
 			"id":	"0x01000043"
 		}, {
 			"type":	"string",
-			"name":	"tab_diary",
+			"name":	"setting_confirm",
 			"id":	"0x01000044"
 		}, {
 			"type":	"string",
-			"name":	"tab_home",
+			"name":	"setting_dark_mode",
 			"id":	"0x01000045"
 		}, {
 			"type":	"string",
-			"name":	"tab_plog",
+			"name":	"setting_theme_blue",
 			"id":	"0x01000046"
 		}, {
 			"type":	"string",
-			"name":	"tab_setting",
+			"name":	"setting_theme_desc",
 			"id":	"0x01000047"
 		}, {
 			"type":	"string",
-			"name":	"tab_todo",
+			"name":	"setting_theme_green",
 			"id":	"0x01000048"
 		}, {
 			"type":	"string",
-			"name":	"today_tasks",
+			"name":	"setting_theme_orange",
 			"id":	"0x01000049"
 		}, {
 			"type":	"string",
-			"name":	"todo_form_desc",
+			"name":	"setting_theme_pink",
 			"id":	"0x0100004A"
 		}, {
 			"type":	"string",
-			"name":	"todo_form_label",
+			"name":	"setting_theme_purple",
 			"id":	"0x0100004B"
 		}, {
 			"type":	"string",
-			"name":	"write_media_reason",
+			"name":	"setting_theme_selected",
 			"id":	"0x0100004C"
 		}, {
 			"type":	"string",
-			"name":	"yesterday_carryover",
+			"name":	"setting_theme_title",
 			"id":	"0x0100004D"
+		}, {
+			"type":	"string",
+			"name":	"setting_title",
+			"id":	"0x0100004E"
+		}, {
+			"type":	"string",
+			"name":	"setting_version",
+			"id":	"0x0100004F"
+		}, {
+			"type":	"string",
+			"name":	"tab_category",
+			"id":	"0x01000050"
+		}, {
+			"type":	"string",
+			"name":	"tab_diary",
+			"id":	"0x01000051"
+		}, {
+			"type":	"string",
+			"name":	"tab_home",
+			"id":	"0x01000052"
+		}, {
+			"type":	"string",
+			"name":	"tab_plog",
+			"id":	"0x01000053"
+		}, {
+			"type":	"string",
+			"name":	"tab_setting",
+			"id":	"0x01000054"
+		}, {
+			"type":	"string",
+			"name":	"tab_todo",
+			"id":	"0x01000055"
+		}, {
+			"type":	"string",
+			"name":	"today_tasks",
+			"id":	"0x01000056"
+		}, {
+			"type":	"string",
+			"name":	"todo_form_desc",
+			"id":	"0x01000057"
+		}, {
+			"type":	"string",
+			"name":	"todo_form_label",
+			"id":	"0x01000058"
+		}, {
+			"type":	"string",
+			"name":	"todo_no_remind",
+			"id":	"0x01000059"
+		}, {
+			"type":	"string",
+			"name":	"todo_remark_placeholder",
+			"id":	"0x0100005A"
+		}, {
+			"type":	"string",
+			"name":	"todo_remind",
+			"id":	"0x0100005B"
+		}, {
+			"type":	"string",
+			"name":	"todo_save",
+			"id":	"0x0100005C"
+		}, {
+			"type":	"string",
+			"name":	"write_media_reason",
+			"id":	"0x0100005D"
+		}, {
+			"type":	"string",
+			"name":	"yesterday_carryover",
+			"id":	"0x0100005E"
 		}, {
 			"type":	"color",
 			"name":	"background_color",
-			"id":	"0x0100004E"
+			"id":	"0x0100005F"
 		}, {
 			"type":	"color",
 			"name":	"calendar_selected",
-			"id":	"0x0100004F"
+			"id":	"0x01000060"
 		}, {
 			"type":	"color",
 			"name":	"calendar_today",
-			"id":	"0x01000050"
+			"id":	"0x01000061"
 		}, {
 			"type":	"color",
 			"name":	"card_background",
-			"id":	"0x01000051"
+			"id":	"0x01000062"
 		}, {
 			"type":	"color",
 			"name":	"divider_color",
-			"id":	"0x01000052"
+			"id":	"0x01000063"
 		}, {
 			"type":	"color",
 			"name":	"error_color",
-			"id":	"0x01000053"
+			"id":	"0x01000064"
 		}, {
 			"type":	"color",
 			"name":	"primary_color",
-			"id":	"0x01000054"
+			"id":	"0x01000065"
 		}, {
 			"type":	"color",
 			"name":	"secondary_color",
-			"id":	"0x01000055"
+			"id":	"0x01000066"
 		}, {
 			"type":	"color",
 			"name":	"start_window_background",
-			"id":	"0x01000056"
+			"id":	"0x01000067"
 		}, {
 			"type":	"color",
 			"name":	"success_color",
-			"id":	"0x01000057"
+			"id":	"0x01000068"
 		}, {
 			"type":	"color",
 			"name":	"text_hint",
-			"id":	"0x01000058"
+			"id":	"0x01000069"
 		}, {
 			"type":	"color",
 			"name":	"text_primary",
-			"id":	"0x01000059"
+			"id":	"0x0100006A"
 		}, {
 			"type":	"color",
 			"name":	"text_secondary",
-			"id":	"0x0100005A"
+			"id":	"0x0100006B"
 		}, {
 			"type":	"color",
 			"name":	"todo_completed",
-			"id":	"0x0100005B"
+			"id":	"0x0100006C"
 		}, {
 			"type":	"color",
 			"name":	"todo_pending",
-			"id":	"0x0100005C"
+			"id":	"0x0100006D"
 		}, {
 			"type":	"color",
 			"name":	"warning_color",
-			"id":	"0x0100005D"
+			"id":	"0x0100006E"
 		}, {
 			"type":	"float",
 			"name":	"border_radius_lg",
-			"id":	"0x0100005E"
+			"id":	"0x0100006F"
 		}, {
 			"type":	"float",
 			"name":	"border_radius_md",
-			"id":	"0x0100005F"
+			"id":	"0x01000070"
 		}, {
 			"type":	"float",
 			"name":	"border_radius_sm",
-			"id":	"0x01000060"
+			"id":	"0x01000071"
 		}, {
 			"type":	"float",
 			"name":	"border_radius_xl",
-			"id":	"0x01000061"
+			"id":	"0x01000072"
 		}, {
 			"type":	"float",
 			"name":	"font_size_base",
-			"id":	"0x01000062"
+			"id":	"0x01000073"
 		}, {
 			"type":	"float",
 			"name":	"font_size_lg",
-			"id":	"0x01000063"
+			"id":	"0x01000074"
 		}, {
 			"type":	"float",
 			"name":	"font_size_md",
-			"id":	"0x01000064"
+			"id":	"0x01000075"
 		}, {
 			"type":	"float",
 			"name":	"font_size_sm",
-			"id":	"0x01000065"
+			"id":	"0x01000076"
 		}, {
 			"type":	"float",
 			"name":	"font_size_xl",
-			"id":	"0x01000066"
+			"id":	"0x01000077"
 		}, {
 			"type":	"float",
 			"name":	"font_size_xs",
-			"id":	"0x01000067"
+			"id":	"0x01000078"
 		}, {
 			"type":	"float",
 			"name":	"font_size_xxl",
-			"id":	"0x01000068"
+			"id":	"0x01000079"
 		}, {
 			"type":	"float",
 			"name":	"spacing_lg",
-			"id":	"0x01000069"
+			"id":	"0x0100007A"
 		}, {
 			"type":	"float",
 			"name":	"spacing_md",
-			"id":	"0x0100006A"
+			"id":	"0x0100007B"
 		}, {
 			"type":	"float",
 			"name":	"spacing_sm",
-			"id":	"0x0100006B"
+			"id":	"0x0100007C"
 		}, {
 			"type":	"float",
 			"name":	"spacing_xl",
-			"id":	"0x0100006C"
+			"id":	"0x0100007D"
 		}, {
 			"type":	"float",
 			"name":	"spacing_xs",
-			"id":	"0x0100006D"
+			"id":	"0x0100007E"
 		}, {
 			"type":	"media",
 			"name":	"startIcon",
-			"id":	"0x0100006E"
+			"id":	"0x0100007F"
 		}, {
 			"type":	"profile",
 			"name":	"backup_config",
-			"id":	"0x0100006F"
+			"id":	"0x01000080"
 		}, {
 			"type":	"profile",
 			"name":	"form_config",
-			"id":	"0x01000070"
+			"id":	"0x01000081"
 		}, {
 			"type":	"profile",
 			"name":	"main_pages",
-			"id":	"0x01000071"
-		}, {
-			"type":	"string",
-			"name":	"moment_add",
-			"id":	"0x01000072"
-		}, {
-			"type":	"string",
-			"name":	"moment_add_to_collection",
-			"id":	"0x01000073"
-		}, {
-			"type":	"string",
-			"name":	"moment_cancel",
-			"id":	"0x01000074"
-		}, {
-			"type":	"string",
-			"name":	"moment_delete_confirm_msg",
-			"id":	"0x01000075"
-		}, {
-			"type":	"string",
-			"name":	"moment_delete_confirm_title",
-			"id":	"0x01000076"
-		}, {
-			"type":	"string",
-			"name":	"moment_delete_selected",
-			"id":	"0x01000077"
-		}, {
-			"type":	"string",
-			"name":	"moment_make_plog",
-			"id":	"0x01000078"
-		}, {
-			"type":	"string",
-			"name":	"moment_more",
-			"id":	"0x01000079"
-		}, {
-			"type":	"string",
-			"name":	"moment_more_collections",
-			"id":	"0x0100007A"
-		}, {
-			"type":	"string",
-			"name":	"moment_more_plog_book",
-			"id":	"0x0100007B"
-		}, {
-			"type":	"string",
-			"name":	"moment_multi_select",
-			"id":	"0x0100007C"
-		}, {
-			"type":	"string",
-			"name":	"moment_select_all",
-			"id":	"0x0100007D"
-		}, {
-			"type":	"string",
-			"name":	"moment_select_items",
-			"id":	"0x0100007E"
+			"id":	"0x01000082"
 		}]
 }

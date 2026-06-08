@@ -16,14 +16,24 @@ import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { fileUri } from '@kit.CoreFileKit';
 import { promptAction } from '@kit.ArkUI';
 import PreferencesUtil from '../common/database/PreferencesUtil';
+import type { ThemeColors } from '../common/theme/ThemeManager';
 
 /**
  * 首页 - 带底部导航栏的主页面
  * 包含 Todo（待办）、Plog/随手记、Setting（设置）三个Tab
+ * 支持动态主题（通过 @StorageLink 读取 app_active_theme）
  */
 @Entry
 @Component
 struct HomePage {
+  @StorageLink('app_active_theme') currentColors: ThemeColors = {
+    primary: '#ffac34',
+    bgMain: '#fdfaf2',
+    bgCard: '#ffffff',
+    textMain: '#3e2723',
+    textMuted: '#ffcd84',
+    border: '#f6f0e2'
+  };
   @State currentTabIndex: number = 0;
   private tabTitles: ResourceStr[] = [$r('app.string.tab_todo'), $r('app.string.tab_plog'), $r('app.string.tab_setting')];
   private tabIcons: Resource[] = [$r('app.media.icon'), $r('sys.symbol.book'), $r('sys.symbol.gearshape')];
@@ -722,7 +732,7 @@ struct HomePage {
         .tabBar(this.TabBarBuilder(2))
       }
       .barHeight(this.isMultiSelectMode && this.currentTabIndex === 1 ? 0 : 56)
-      .barBackgroundColor($r('app.color.card_background'))
+      .barBackgroundColor(this.currentColors.bgCard)
       .animationDuration(200)
       .onChange((index: number) => {
         this.currentTabIndex = index;
@@ -741,21 +751,37 @@ struct HomePage {
   // ==================== TabBar 构建器 ====================
 
   @Builder
+  @Builder
   TabBarBuilder(index: number) {
     Column() {
-      SymbolGlyph(this.currentTabIndex === index ? this.tabIconsActive[index] : this.tabIcons[index])
-        .fontSize(24)
-        .fontColor([$r('app.color.primary_color'), $r('app.color.primary_color'), $r('app.color.primary_color')])
-        .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
-        .effectStrategy(SymbolEffectStrategy.HIERARCHICAL)
+      // 1. 动态判断图标：根据索引选择系统内置的矢量符号
+      if (index === 0) {
+        // Tab 0: 待办（打勾文档图标）
+        SymbolGlyph($r('sys.symbol.checkmark_square_fill'))
+          .fontSize(22)
+          // 关键：激活状态用你的主题 primary 彩色，未激活用 textMuted 弱灰色
+          .fontColor([this.currentTabIndex === 0 ? this.currentColors.primary : this.currentColors.textMuted])
+      } else if (index === 1) {
+        // Tab 1: 手账 / 随手记（书本/画笔图标，这里用内置的经典书本符号）
+        SymbolGlyph($r('sys.symbol.doc_plaintext'))
+          .fontSize(22)
+          .fontColor([this.currentTabIndex === 1 ? this.currentColors.primary : this.currentColors.textMuted])
+      } else {
+        // Tab 2: 设置（齿轮图标）
+        SymbolGlyph($r('sys.symbol.gearshape'))
+          .fontSize(22)
+          .fontColor([this.currentTabIndex === 2 ? this.currentColors.primary : this.currentColors.textMuted])
+      }
 
-      Text(this.tabTitles[index])
-        .fontSize(10)
-        .fontColor(this.currentTabIndex === index ? $r('app.color.primary_color') : $r('app.color.text_hint'))
-        .margin({ top: 2 })
+      // 2. 动态判断文字颜色
+      Text(index === 0 ? '待办' : index === 1 ? '手账' : '设置')
+        .fontSize(11)
+        .fontWeight(this.currentTabIndex === index ? FontWeight.Medium : FontWeight.Normal)
+        .fontColor(this.currentTabIndex === index ? this.currentColors.primary : this.currentColors.textMuted)
+        .margin({ top: 4 })
     }
     .width('100%')
-    .height('100%')
+    .height(56)
     .justifyContent(FlexAlign.Center)
   }
 
@@ -776,12 +802,12 @@ struct HomePage {
             Text(DateUtils.formatDisplayDate(this.selectedDate))
               .fontSize($r('app.float.font_size_xxl'))
               .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
+              .fontColor(this.currentColors.textMain)
             Blank()
             Button({ type: ButtonType.Circle }) {
               SymbolGlyph($r('sys.symbol.chevron_down'))
                 .fontSize(18)
-                .fontColor([$r('app.color.text_secondary')])
+                .fontColor([this.currentColors.textMuted])
                 .rotate({ angle: this.isCalendarExpanded ? 180 : 0 })
                 .animation({ duration: 200 })
             }
@@ -797,6 +823,7 @@ struct HomePage {
           WeekCalendarComponent({
             currentWeek: this.currentWeek,
             selectedDate: this.selectedDate,
+            colors: this.currentColors,
             onDateSelected: (date: string) => this.onDateSelected(date)
           })
             .margin({ top: 8, left: 16, right: 16 })
@@ -807,6 +834,7 @@ struct HomePage {
               calendar: this.monthCalendar,
               selectedDate: this.selectedDate,
               eventDates: this.eventDates,
+              colors: this.currentColors,
               onDateSelected: (date: string) => {
                 this.onDateSelected(date);
                 this.toggleCalendar();
@@ -816,7 +844,7 @@ struct HomePage {
           }
 
           Divider()
-            .color($r('app.color.divider_color'))
+            .color(this.currentColors.border)
             .margin({ top: this.isCalendarExpanded ? 12 : 8, bottom: 8 })
 
           // 4. 标题栏：提醒（iOS 风格大标题）
@@ -824,7 +852,7 @@ struct HomePage {
             Text('提醒')
               .fontSize(32)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#FF9500')
+              .fontColor(this.currentColors.primary)
             Blank()
           }
           .width('100%')
@@ -837,7 +865,7 @@ struct HomePage {
             if (this.todos.length === 0 && this.editingTodoId === 0) {
               Column() {
                 Text('📝').fontSize(48).margin({ bottom: 12 })
-                Text('今天还没有任务').fontSize($r('app.float.font_size_base')).fontColor($r('app.color.text_hint'))
+                Text('今天还没有任务').fontSize($r('app.float.font_size_base')).fontColor(this.currentColors.textMuted)
               }
               .width('100%')
               .layoutWeight(1)
@@ -866,12 +894,20 @@ struct HomePage {
                   this.isAddingRemark = true;
                 }
               })
+                .borderRadius($r('app.float.border_radius_lg'))
+                .backgroundColor(this.currentColors.bgCard)
+                .shadow({
+                  radius: 12,
+                  color: '#0d000000',
+                  offsetX: 0,
+                  offsetY: 4
+                })
             }
           }
         }
         .width('100%')
         .height('100%')
-        .backgroundColor($r('app.color.background_color'))
+        .backgroundColor(this.currentColors.bgMain)
 
         // 悬浮加号按钮（只在非编辑态显示，隶属于 Stack 右下角）
         if (this.editingTodoId === 0) {
@@ -880,7 +916,7 @@ struct HomePage {
           }
           .width(56)
           .height(56)
-          .backgroundColor($r('app.color.primary_color'))
+          .backgroundColor(this.currentColors.primary)
           .margin({ right: 24, bottom: 24 })
           .shadow({ radius: 8, color: '#30000000', offsetX: 0, offsetY: 4 })
           .zIndex(999)
@@ -914,7 +950,7 @@ struct HomePage {
             Button($r('app.string.moment_select_all'))
               .fontSize($r('app.float.font_size_sm'))
               .backgroundColor(Color.Transparent)
-              .fontColor($r('app.color.primary_color'))
+              .fontColor(this.currentColors.primary)
               .height(32)
               .onClick(() => {
                 animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
@@ -928,7 +964,7 @@ struct HomePage {
               `已选 ${this.selectedMomentIds.size} 项` : '选择项目')
               .fontSize($r('app.float.font_size_base'))
               .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
+              .fontColor(this.currentColors.textMain)
               .animation({ duration: 150 })
 
             Blank()
@@ -936,7 +972,7 @@ struct HomePage {
             Button($r('app.string.moment_cancel'))
               .fontSize($r('app.float.font_size_sm'))
               .backgroundColor(Color.Transparent)
-              .fontColor($r('app.color.primary_color'))
+              .fontColor(this.currentColors.primary)
               .height(32)
               .onClick(() => {
                 animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
@@ -955,7 +991,7 @@ struct HomePage {
             Text($r('app.string.moment_title'))
               .fontSize($r('app.float.font_size_xxl'))
               .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
+              .fontColor(this.currentColors.textMain)
 
             Blank()
 
@@ -963,12 +999,12 @@ struct HomePage {
             Button() {
               SymbolGlyph($r('sys.symbol.magnifyingglass'))
                 .fontSize(20)
-                .fontColor([$r('app.color.text_secondary')])
+                .fontColor([this.currentColors.textMuted])
             }
             .width(40)
             .height(40)
             .backgroundColor(Color.Transparent)
-            .border({ width: 1, color: $r('app.color.divider_color'), radius: 20 })
+            .border({ width: 1, color: this.currentColors.border, radius: 20 })
             .onClick(() => {
               animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
                 this.showSearchBar = true;
@@ -979,12 +1015,12 @@ struct HomePage {
             Button() {
               SymbolGlyph($r('sys.symbol.checkmark'))
                 .fontSize(20)
-                .fontColor([$r('app.color.text_secondary')])
+                .fontColor([this.currentColors.textMuted])
             }
             .width(40)
             .height(40)
             .backgroundColor(Color.Transparent)
-            .border({ width: 1, color: $r('app.color.divider_color'), radius: 20 })
+            .border({ width: 1, color: this.currentColors.border, radius: 20 })
             .margin({ left: 10 })
             .onClick(() => {
               animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
@@ -996,12 +1032,12 @@ struct HomePage {
             Button() {
               SymbolGlyph($r('sys.symbol.plus'))
                 .fontSize(20)
-                .fontColor([$r('app.color.text_secondary')])
+                .fontColor([this.currentColors.textMuted])
             }
             .width(40)
             .height(40)
             .backgroundColor(Color.Transparent)
-            .border({ width: 1, color: $r('app.color.divider_color'), radius: 20 })
+            .border({ width: 1, color: this.currentColors.border, radius: 20 })
             .margin({ left: 10 })
             .onClick(() => {
               this.isAddMode = true;
@@ -1014,12 +1050,12 @@ struct HomePage {
             Button() {
               Text('⋮')
                 .fontSize(22)
-                .fontColor($r('app.color.text_secondary'))
+                .fontColor(this.currentColors.textMuted)
             }
             .width(40)
             .height(40)
             .backgroundColor(Color.Transparent)
-            .border({ width: 1, color: $r('app.color.divider_color'), radius: 20 })
+            .border({ width: 1, color: this.currentColors.border, radius: 20 })
             .margin({ left: 10 })
             .onClick(() => {
               animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
@@ -1035,7 +1071,7 @@ struct HomePage {
         }
 
         Divider()
-          .color($r('app.color.divider_color'))
+          .color(this.currentColors.border)
 
         // 搜索框（从导航栏下方展开，非整体滑入）
         Column() {
@@ -1044,10 +1080,10 @@ struct HomePage {
               placeholder: '搜索时间、内容、地点…',
               text: this.searchKeyword
             })
-              .placeholderColor($r('app.color.text_hint'))
+              .placeholderColor(this.currentColors.textMuted)
               .fontSize($r('app.float.font_size_sm'))
               .height(36)
-              .backgroundColor($r('app.color.background_color'))
+              .backgroundColor(this.currentColors.bgMain)
               .borderRadius($r('app.float.border_radius_md'))
               .layoutWeight(1)
               .enabled(this.showSearchBar)
@@ -1058,7 +1094,7 @@ struct HomePage {
             Button() {
               SymbolGlyph($r('sys.symbol.xmark'))
                 .fontSize(14)
-                .fontColor([$r('app.color.text_hint')])
+                .fontColor([this.currentColors.textMuted])
             }
             .width(32)
             .height(32)
@@ -1073,7 +1109,7 @@ struct HomePage {
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor(this.currentColors.bgCard)
         }
         .width('100%')
         .clip(true)
@@ -1092,10 +1128,10 @@ struct HomePage {
               .margin({ bottom: 12 })
             Text($r('app.string.moment_no_posts'))
               .fontSize($r('app.float.font_size_base'))
-              .fontColor($r('app.color.text_hint'))
+              .fontColor(this.currentColors.textMuted)
             Text($r('app.string.moment_no_posts_hint'))
               .fontSize($r('app.float.font_size_sm'))
-              .fontColor($r('app.color.text_hint'))
+              .fontColor(this.currentColors.textMuted)
               .margin({ top: 4 })
           }
           .width('100%')
@@ -1126,7 +1162,7 @@ struct HomePage {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.background_color'))
+      .backgroundColor(this.currentColors.bgMain)
 
       // 更多下拉菜单 + 遮罩（全屏 Stack 定位在右上角）
       if (this.showMoreDropdown) {
@@ -1218,9 +1254,9 @@ struct HomePage {
           Row() {
             Circle({ width: 22, height: 22 })
               .fill(this.selectedMomentIds.has(moment.id) ?
-                $r('app.color.primary_color') : Color.Transparent)
+                this.currentColors.primary : Color.Transparent)
               .stroke(this.selectedMomentIds.has(moment.id) ?
-                $r('app.color.primary_color') : $r('app.color.text_hint'))
+                this.currentColors.primary : this.currentColors.textMuted)
               .strokeWidth(2)
           }
           .onClick(() => this.toggleMomentSelection(moment.id))
@@ -1230,12 +1266,12 @@ struct HomePage {
 
         Text(DateUtils.formatTime(moment.timestamp))
           .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+          .fontColor(this.currentColors.textMuted)
 
         if (moment.location) {
           Text(`📍 ${moment.location}`)
             .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_hint'))
+            .fontColor(this.currentColors.textMuted)
             .margin({ left: 12 })
         }
 
@@ -1247,7 +1283,7 @@ struct HomePage {
       if (moment.content) {
         Text(moment.content)
           .fontSize($r('app.float.font_size_base'))
-          .fontColor($r('app.color.text_primary'))
+          .fontColor(this.currentColors.textMain)
           .lineHeight(24)
           .width('100%')
           .margin({ bottom: moment.mediaUrls && moment.mediaUrls.length > 0 ? 12 : 0 })
@@ -1279,10 +1315,10 @@ struct HomePage {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor(this.currentColors.bgCard)
     .borderRadius($r('app.float.border_radius_lg'))
     .margin({ bottom: 12 })
-    .shadow({ radius: 4, color: '#08000000', offsetX: 0, offsetY: 2 })
+    .shadow({ radius: 12, color: '#0d000000', offsetX: 0, offsetY: 4 })
     .onClick(() => {
       if (this.isMultiSelectMode) {
         this.toggleMomentSelection(moment.id);
@@ -1301,7 +1337,7 @@ struct HomePage {
         Button() {
           SymbolGlyph($r('sys.symbol.xmark'))
             .fontSize(18)
-            .fontColor([$r('app.color.text_secondary')])
+            .fontColor([this.currentColors.textMuted])
         }
         .width(32)
         .height(32)
@@ -1322,7 +1358,7 @@ struct HomePage {
         Text('发布随手记')
           .fontSize($r('app.float.font_size_lg'))
           .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
+          .fontColor(this.currentColors.textMain)
 
         Blank()
 
@@ -1331,7 +1367,7 @@ struct HomePage {
           .fontSize($r('app.float.font_size_sm'))
           .fontColor(Color.White)
           .backgroundColor(this.newPostContent || this.newPostMediaUris.length > 0 ?
-            $r('app.color.primary_color') : '#CCCCCC')
+            this.currentColors.primary : '#CCCCCC')
           .borderRadius(16)
           .width(56)
           .height(32)
@@ -1345,7 +1381,7 @@ struct HomePage {
         .width('100%')
         .height(this.isAddMode ? 200 : 120)
         .fontSize($r('app.float.font_size_base'))
-        .backgroundColor($r('app.color.background_color'))
+        .backgroundColor(this.currentColors.bgMain)
         .borderRadius($r('app.float.border_radius_md'))
         .padding(12)
         .onChange((value: string) => { this.newPostContent = value; })
@@ -1382,11 +1418,11 @@ struct HomePage {
             Row() {
               Text('＋')
                 .fontSize(36)
-                .fontColor($r('app.color.text_hint'))
+                .fontColor(this.currentColors.textMuted)
             }
             .width(100)
             .height(100)
-            .border({ width: 1, color: $r('app.color.divider_color') })
+            .border({ width: 1, color: this.currentColors.border })
             .borderRadius(6)
             .justifyContent(FlexAlign.Center)
             .alignItems(VerticalAlign.Center)
@@ -1408,8 +1444,8 @@ struct HomePage {
         TextInput({ placeholder: '添加位置', text: this.newPostLocation })
           .layoutWeight(1)
           .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_primary'))
-          .placeholderColor($r('app.color.text_hint'))
+          .fontColor(this.currentColors.textMain)
+          .placeholderColor(this.currentColors.textMuted)
           .backgroundColor(Color.Transparent)
           .padding(0)
           .borderRadius(0)
@@ -1418,7 +1454,7 @@ struct HomePage {
           Button() {
             SymbolGlyph($r('sys.symbol.xmark'))
               .fontSize(12)
-              .fontColor([$r('app.color.text_hint')])
+              .fontColor([this.currentColors.textMuted])
           }
           .width(24)
           .height(24)
@@ -1429,14 +1465,14 @@ struct HomePage {
       .width('100%')
       .height(44)
       .padding({ left: 12, right: 8, top: 4, bottom: 4 })
-      .backgroundColor($r('app.color.background_color'))
+      .backgroundColor(this.currentColors.bgMain)
       .borderRadius($r('app.float.border_radius_md'))
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .height('100%')
     .padding(this.isAddMode ? 16 : 20)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor(this.currentColors.bgCard)
     .borderRadius(this.isAddMode ? 0 : $r('app.float.border_radius_xl'))
   }
 
@@ -1453,7 +1489,7 @@ struct HomePage {
           Button() {
             SymbolGlyph($r('sys.symbol.chevron_left'))
               .fontSize(18)
-              .fontColor([$r('app.color.text_secondary')])
+              .fontColor([this.currentColors.textMuted])
           }
           .width(32)
           .height(32)
@@ -1469,14 +1505,14 @@ struct HomePage {
           Text('新建合集')
             .fontSize($r('app.float.font_size_lg'))
             .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
+            .fontColor(this.currentColors.textMain)
 
           Blank()
 
           Text('创建')
             .fontSize($r('app.float.font_size_base'))
             .fontColor(this.newCollectionName.trim().length > 0 && this.newCollectionName.trim().length <= 10
-              ? $r('app.color.primary_color') : $r('app.color.text_hint'))
+              ? this.currentColors.primary : this.currentColors.textMuted)
             .onClick(() => this.createNewCollection())
         }
         .width('100%')
@@ -1490,14 +1526,14 @@ struct HomePage {
           .width('100%')
           .height(48)
           .fontSize($r('app.float.font_size_base'))
-          .backgroundColor($r('app.color.background_color'))
+          .backgroundColor(this.currentColors.bgMain)
           .borderRadius($r('app.float.border_radius_md'))
           .padding({ left: 12, right: 12 })
           .border({
             width: this.newCollectionName.length > 10 ? 1 : 0,
             color: this.newCollectionName.length > 10 ? '#FF4D4F' : Color.Transparent
           })
-          .fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : $r('app.color.text_primary'))
+          .fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : this.currentColors.textMain)
           .onChange((value: string) => { this.newCollectionName = value; })
           .onSubmit(() => { this.createNewCollection(); })
 
@@ -1512,7 +1548,7 @@ struct HomePage {
       }
       .width('100%')
       .padding(20)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor(this.currentColors.bgCard)
       .borderRadius({ topLeft: $r('app.float.border_radius_xl'), topRight: $r('app.float.border_radius_xl') })
     }
     .width('100%')
@@ -1539,14 +1575,14 @@ struct HomePage {
           Text(`已选定 ${this.selectedMomentIds.size} 条  添加到`)
             .fontSize($r('app.float.font_size_lg'))
             .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
+            .fontColor(this.currentColors.textMain)
 
           Blank()
 
           Button() {
             SymbolGlyph($r('sys.symbol.xmark'))
               .fontSize(18)
-              .fontColor([$r('app.color.text_secondary')])
+              .fontColor([this.currentColors.textMuted])
           }
           .width(32)
           .height(32)
@@ -1564,12 +1600,12 @@ struct HomePage {
         Row() {
           Text('＋新建合集')
             .fontSize($r('app.float.font_size_base'))
-            .fontColor($r('app.color.text_primary'))
+            .fontColor(this.currentColors.textMain)
         }
         .width('100%')
         .height(44)
         .padding({ left: 12, right: 12 })
-        .backgroundColor($r('app.color.background_color'))
+        .backgroundColor(this.currentColors.bgMain)
         .borderRadius($r('app.float.border_radius_md'))
         .margin({ bottom: 8 })
         .onClick(() => {
@@ -1587,16 +1623,16 @@ struct HomePage {
               Row() {
                 Text(collection)
                   .fontSize($r('app.float.font_size_base'))
-                  .fontColor($r('app.color.text_primary'))
+                  .fontColor(this.currentColors.textMain)
                 Blank()
                 Text(`${this.moments.filter((m) => m.category === collection).length}条`)
                   .fontSize($r('app.float.font_size_sm'))
-                  .fontColor($r('app.color.text_hint'))
+                  .fontColor(this.currentColors.textMuted)
               }
               .width('100%')
               .height(44)
               .padding({ left: 12, right: 12 })
-              .backgroundColor($r('app.color.background_color'))
+              .backgroundColor(this.currentColors.bgMain)
               .borderRadius($r('app.float.border_radius_md'))
               .onClick(() => {
                 this.addSelectedToCollection(collection);
@@ -1607,7 +1643,7 @@ struct HomePage {
         } else {
           Text('暂无合集，点击上方按钮创建')
             .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_hint'))
+            .fontColor(this.currentColors.textMuted)
             .width('100%')
             .textAlign(TextAlign.Center)
             .margin({ top: 8 })
@@ -1615,7 +1651,7 @@ struct HomePage {
       }
       .width('100%')
       .padding(20)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor(this.currentColors.bgCard)
       .borderRadius({ topLeft: $r('app.float.border_radius_xl'), topRight: $r('app.float.border_radius_xl') })
     }
     .width('100%')
@@ -1640,10 +1676,10 @@ struct HomePage {
           Column({ space: 2 }) {
             SymbolGlyph($r('sys.symbol.folder'))
               .fontSize(18)
-              .fontColor([$r('app.color.primary_color')])
+              .fontColor([this.currentColors.primary])
             Text($r('app.string.moment_add_to_collection'))
               .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.primary_color'))
+              .fontColor(this.currentColors.primary)
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
@@ -1661,7 +1697,7 @@ struct HomePage {
       Divider()
         .vertical(true)
         .height(28)
-        .color($r('app.color.divider_color'))
+        .color(this.currentColors.border)
 
       Column() {
         // 删除
@@ -1669,10 +1705,10 @@ struct HomePage {
           Column({ space: 2 }) {
             SymbolGlyph($r('sys.symbol.trash'))
               .fontSize(18)
-              .fontColor([$r('app.color.error_color')])
+              .fontColor(['#FF4D4F'])
             Text($r('app.string.moment_delete_selected'))
               .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.error_color'))
+              .fontColor('#FF4D4F')
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
@@ -1690,7 +1726,7 @@ struct HomePage {
       Divider()
         .vertical(true)
         .height(28)
-        .color($r('app.color.divider_color'))
+        .color(this.currentColors.border)
 
       Column() {
         // 制作手账
@@ -1698,10 +1734,10 @@ struct HomePage {
           Column({ space: 2 }) {
             SymbolGlyph($r('sys.symbol.wand_and_stars'))
               .fontSize(18)
-              .fontColor([$r('app.color.primary_color')])
+              .fontColor([this.currentColors.primary])
             Text($r('app.string.moment_make_plog'))
               .fontSize($r('app.float.font_size_xs'))
-              .fontColor($r('app.color.primary_color'))
+              .fontColor(this.currentColors.primary)
           }
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
@@ -1723,7 +1759,7 @@ struct HomePage {
     }
     .width('100%')
     .height(56)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor(this.currentColors.bgCard)
     .borderRadius({ topLeft: $r('app.float.border_radius_lg'), topRight: $r('app.float.border_radius_lg') })
     .shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: -2 })
     .zIndex(100)
@@ -1740,7 +1776,7 @@ struct HomePage {
         Column()
           .width(8)
           .height(8)
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor(this.currentColors.bgCard)
           .rotate({ angle: 45 })
           .margin({ top: -4, right: 14 })
       }
@@ -1751,10 +1787,10 @@ struct HomePage {
       Row({ space: 10 }) {
         SymbolGlyph($r('sys.symbol.folder'))
           .fontSize(15)
-          .fontColor([$r('app.color.text_secondary')])
+          .fontColor([this.currentColors.textMuted])
         Text($r('app.string.moment_more_collections'))
           .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_primary'))
+          .fontColor(this.currentColors.textMain)
       }
       .width('100%')
       .height(40)
@@ -1775,17 +1811,17 @@ struct HomePage {
 
       Divider()
         .strokeWidth(0.5)
-        .color($r('app.color.divider_color'))
+        .color(this.currentColors.border)
         .margin({ left: 14, right: 14 })
 
       // 手账本选项
       Row({ space: 10 }) {
         SymbolGlyph($r('sys.symbol.book'))
           .fontSize(15)
-          .fontColor([$r('app.color.text_secondary')])
+          .fontColor([this.currentColors.textMuted])
         Text($r('app.string.moment_more_plog_book'))
           .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_primary'))
+          .fontColor(this.currentColors.textMain)
       }
       .width('100%')
       .height(40)
@@ -1805,7 +1841,7 @@ struct HomePage {
       })
     }
     .width(140)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor(this.currentColors.bgCard)
     .borderRadius(12)
     .shadow({ radius: 12, color: '#15000000', offsetX: 0, offsetY: 6 })
   }
@@ -1822,13 +1858,13 @@ struct HomePage {
         Text($r('app.string.moment_delete_confirm_title'))
           .fontSize($r('app.float.font_size_lg'))
           .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.error_color'))
+          .fontColor('#FF4D4F')
           .margin({ bottom: 12 })
 
         // 确认内容
         Text(`确定要删除选中的 ${this.pendingDeleteCount} 条记录吗？此操作不可恢复。`)
           .fontSize($r('app.float.font_size_base'))
-          .fontColor($r('app.color.text_secondary'))
+          .fontColor(this.currentColors.textMuted)
           .textAlign(TextAlign.Center)
           .lineHeight(22)
           .margin({ bottom: 20 })
@@ -1838,8 +1874,8 @@ struct HomePage {
           Button($r('app.string.setting_cancel'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor($r('app.color.background_color'))
-            .fontColor($r('app.color.text_primary'))
+            .backgroundColor(this.currentColors.bgMain)
+            .fontColor(this.currentColors.textMain)
             .borderRadius($r('app.float.border_radius_md'))
             .onClick(() => {
               animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
@@ -1851,7 +1887,7 @@ struct HomePage {
           Button($r('app.string.setting_confirm'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor($r('app.color.error_color'))
+            .backgroundColor('#FF4D4F')
             .fontColor(Color.White)
             .borderRadius($r('app.float.border_radius_md'))
             .margin({ left: 12 })
@@ -1866,7 +1902,7 @@ struct HomePage {
       }
       .width('85%')
       .padding(24)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor(this.currentColors.bgCard)
       .borderRadius($r('app.float.border_radius_xl'))
 
       Blank()
@@ -1903,7 +1939,7 @@ struct HomePage {
         Button() {
           SymbolGlyph($r('sys.symbol.calendar'))
             .fontSize(22)
-            .fontColor([this.showRemindPicker ? $r('app.color.primary_color') : $r('app.color.text_secondary')])
+            .fontColor([this.showRemindPicker ? this.currentColors.primary : this.currentColors.textMuted])
         }
         .width(44)
         .height(44)
@@ -1915,10 +1951,9 @@ struct HomePage {
 
         // 定位图标
         Button() {
-          Text('📍') // 换成 Emoji 文本
+          Text('📍')
             .fontSize(22)
-            // 🌟 核心修改：去掉了外层的中括号 []
-            .fontColor(this.getEditingTodo()?.location ? $r('app.color.primary_color') : $r('app.color.text_secondary'))
+            .fontColor(this.getEditingTodo()?.location ? this.currentColors.primary : this.currentColors.textMuted)
         }
         .width(44)
         .height(44)
@@ -1929,10 +1964,9 @@ struct HomePage {
 
         // 标签图标 (#)
         Button() {
-          Text('#') // 换成井号文本
+          Text('#')
             .fontSize(22)
-            // 🌟 核心修改：去掉了外层的中括号 []
-            .fontColor(this.getEditingTodo()?.tag ? $r('app.color.primary_color') : $r('app.color.text_secondary'))
+            .fontColor(this.getEditingTodo()?.tag ? this.currentColors.primary : this.currentColors.textMuted)
         }
         .width(44)
         .height(44)
@@ -1949,7 +1983,7 @@ struct HomePage {
         Button() {
           SymbolGlyph($r('sys.symbol.flag'))
             .fontSize(22)
-            .fontColor([this.getEditingTodo()?.flagged ? $r('app.color.primary_color') : $r('app.color.text_secondary')])
+            .fontColor([this.getEditingTodo()?.flagged ? this.currentColors.primary : this.currentColors.textMuted])
         }
         .width(44)
         .height(44)
@@ -1964,7 +1998,7 @@ struct HomePage {
         Button() {
           SymbolGlyph($r('sys.symbol.camera'))
             .fontSize(22)
-            .fontColor([this.getEditingTodo()?.imageUris ? $r('app.color.primary_color') : $r('app.color.text_secondary')])
+            .fontColor([this.getEditingTodo()?.imageUris ? this.currentColors.primary : this.currentColors.textMuted])
         }
         .width(44)
         .height(44)
@@ -1975,10 +2009,10 @@ struct HomePage {
       }
       .width('100%')
       .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-      .backgroundColor('#F2F2F7')
+      .backgroundColor(this.currentColors.bgMain)
     }
     .width('100%')
-    .backgroundColor('#F2F2F7')
+    .backgroundColor(this.currentColors.bgMain)
   }
 
   /**
@@ -1989,7 +2023,7 @@ struct HomePage {
     Row() {
       TextInput({ text: this.tagInputBuffer, placeholder: '输入标签...' })
         .fontSize(14)
-        .fontColor($r('app.color.text_primary'))
+        .fontColor(this.currentColors.textMain)
         .backgroundColor(Color.Transparent)
         .padding(0)
         .layoutWeight(1)
@@ -2004,7 +2038,7 @@ struct HomePage {
       Button() {
         SymbolGlyph($r('sys.symbol.checkmark'))
           .fontSize(18)
-          .fontColor([$r('app.color.primary_color')])
+          .fontColor([this.currentColors.primary])
       }
       .width(36)
       .height(36)
@@ -2015,7 +2049,7 @@ struct HomePage {
     }
     .width('100%')
     .padding({ left: 16, right: 8, top: 4, bottom: 4 })
-    .backgroundColor('#F2F2F7')
+    .backgroundColor(this.currentColors.bgMain)
   }
 
   /**
@@ -2027,8 +2061,8 @@ struct HomePage {
       ForEach(['08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'], (time: string) => {
         Button(time)
           .fontSize($r('app.float.font_size_xs'))
-          .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.background_color'))
+          .fontColor(this.currentColors.textMain)
+          .backgroundColor(this.currentColors.bgMain)
           .borderRadius($r('app.float.border_radius_md'))
           .height(32)
           .padding({ left: 8, right: 8 })
@@ -2040,8 +2074,8 @@ struct HomePage {
 
       Button($r('app.string.todo_no_remind'))
         .fontSize($r('app.float.font_size_xs'))
-        .fontColor($r('app.color.text_hint'))
-        .backgroundColor($r('app.color.background_color'))
+        .fontColor(this.currentColors.textMuted)
+        .backgroundColor(this.currentColors.bgMain)
         .borderRadius($r('app.float.border_radius_md'))
         .height(32)
         .padding({ left: 8, right: 8 })

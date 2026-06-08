@@ -2,6 +2,7 @@ if (!("finalizeConstruction" in ViewPU.prototype)) {
     Reflect.set(ViewPU.prototype, "finalizeConstruction", () => { });
 }
 interface HomePage_Params {
+    currentColors?: ThemeColors;
     currentTabIndex?: number;
     tabTitles?: ResourceStr[];
     tabIcons?: Resource[];
@@ -14,6 +15,11 @@ interface HomePage_Params {
     isLoading?: boolean;
     monthCalendar?: (string | null)[][];
     eventDates?: Set<string>;
+    editingTodoId?: number;
+    isAddingRemark?: boolean;
+    showRemindPicker?: boolean;
+    showTagInput?: boolean;
+    tagInputBuffer?: string;
     moments?: DiaryPost[];
     momentsLoading?: boolean;
     showPublishDialog?: boolean;
@@ -53,14 +59,23 @@ import router from "@ohos:router";
 import photoAccessHelper from "@ohos:file.photoAccessHelper";
 import promptAction from "@ohos:promptAction";
 import PreferencesUtil from "@normalized:N&&&entry/src/main/ets/common/database/PreferencesUtil&";
+import type { ThemeColors } from '../common/theme/ThemeManager';
 class HomePage extends ViewPU {
     constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
         super(parent, __localStorage, elmtId, extraInfo);
         if (typeof paramsLambda === "function") {
             this.paramsGenerator_ = paramsLambda;
         }
+        this.__currentColors = this.createStorageLink('app_active_theme', {
+            primary: '#ffac34',
+            bgMain: '#fdfaf2',
+            bgCard: '#ffffff',
+            textMain: '#3e2723',
+            textMuted: '#ffcd84',
+            border: '#f6f0e2'
+        }, "currentColors");
         this.__currentTabIndex = new ObservedPropertySimplePU(0, this, "currentTabIndex");
-        this.tabTitles = [{ "id": 16777288, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777286, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777287, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }];
+        this.tabTitles = [{ "id": 16777301, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777299, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777300, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }];
         this.tabIcons = [{ "id": 16777217, "type": 20000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 125831935, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 125831493, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }];
         this.tabIconsActive = [{ "id": 16777217, "type": 20000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777217, "type": 20000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 125831494, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }];
         this.__selectedDate = new ObservedPropertySimplePU(DateUtils.getToday(), this, "selectedDate");
@@ -71,6 +86,11 @@ class HomePage extends ViewPU {
         this.__isLoading = new ObservedPropertySimplePU(false, this, "isLoading");
         this.__monthCalendar = new ObservedPropertyObjectPU([], this, "monthCalendar");
         this.__eventDates = new ObservedPropertyObjectPU(new Set(), this, "eventDates");
+        this.__editingTodoId = new ObservedPropertySimplePU(0, this, "editingTodoId");
+        this.__isAddingRemark = new ObservedPropertySimplePU(false, this, "isAddingRemark");
+        this.__showRemindPicker = new ObservedPropertySimplePU(false, this, "showRemindPicker");
+        this.__showTagInput = new ObservedPropertySimplePU(false, this, "showTagInput");
+        this.__tagInputBuffer = new ObservedPropertySimplePU('', this, "tagInputBuffer");
         this.__moments = new ObservedPropertyObjectPU([], this, "moments");
         this.__momentsLoading = new ObservedPropertySimplePU(false, this, "momentsLoading");
         this.__showPublishDialog = new ObservedPropertySimplePU(false, this, "showPublishDialog");
@@ -131,6 +151,21 @@ class HomePage extends ViewPU {
         }
         if (params.eventDates !== undefined) {
             this.eventDates = params.eventDates;
+        }
+        if (params.editingTodoId !== undefined) {
+            this.editingTodoId = params.editingTodoId;
+        }
+        if (params.isAddingRemark !== undefined) {
+            this.isAddingRemark = params.isAddingRemark;
+        }
+        if (params.showRemindPicker !== undefined) {
+            this.showRemindPicker = params.showRemindPicker;
+        }
+        if (params.showTagInput !== undefined) {
+            this.showTagInput = params.showTagInput;
+        }
+        if (params.tagInputBuffer !== undefined) {
+            this.tagInputBuffer = params.tagInputBuffer;
         }
         if (params.moments !== undefined) {
             this.moments = params.moments;
@@ -199,6 +234,7 @@ class HomePage extends ViewPU {
     updateStateVars(params: HomePage_Params) {
     }
     purgeVariableDependenciesOnElmtId(rmElmtId) {
+        this.__currentColors.purgeDependencyOnElmtId(rmElmtId);
         this.__currentTabIndex.purgeDependencyOnElmtId(rmElmtId);
         this.__selectedDate.purgeDependencyOnElmtId(rmElmtId);
         this.__currentWeek.purgeDependencyOnElmtId(rmElmtId);
@@ -208,6 +244,11 @@ class HomePage extends ViewPU {
         this.__isLoading.purgeDependencyOnElmtId(rmElmtId);
         this.__monthCalendar.purgeDependencyOnElmtId(rmElmtId);
         this.__eventDates.purgeDependencyOnElmtId(rmElmtId);
+        this.__editingTodoId.purgeDependencyOnElmtId(rmElmtId);
+        this.__isAddingRemark.purgeDependencyOnElmtId(rmElmtId);
+        this.__showRemindPicker.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTagInput.purgeDependencyOnElmtId(rmElmtId);
+        this.__tagInputBuffer.purgeDependencyOnElmtId(rmElmtId);
         this.__moments.purgeDependencyOnElmtId(rmElmtId);
         this.__momentsLoading.purgeDependencyOnElmtId(rmElmtId);
         this.__showPublishDialog.purgeDependencyOnElmtId(rmElmtId);
@@ -231,6 +272,7 @@ class HomePage extends ViewPU {
         this.__plogsLoading.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
+        this.__currentColors.aboutToBeDeleted();
         this.__currentTabIndex.aboutToBeDeleted();
         this.__selectedDate.aboutToBeDeleted();
         this.__currentWeek.aboutToBeDeleted();
@@ -240,6 +282,11 @@ class HomePage extends ViewPU {
         this.__isLoading.aboutToBeDeleted();
         this.__monthCalendar.aboutToBeDeleted();
         this.__eventDates.aboutToBeDeleted();
+        this.__editingTodoId.aboutToBeDeleted();
+        this.__isAddingRemark.aboutToBeDeleted();
+        this.__showRemindPicker.aboutToBeDeleted();
+        this.__showTagInput.aboutToBeDeleted();
+        this.__tagInputBuffer.aboutToBeDeleted();
         this.__moments.aboutToBeDeleted();
         this.__momentsLoading.aboutToBeDeleted();
         this.__showPublishDialog.aboutToBeDeleted();
@@ -263,6 +310,13 @@ class HomePage extends ViewPU {
         this.__plogsLoading.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
+    }
+    private __currentColors: ObservedPropertyAbstractPU<ThemeColors>;
+    get currentColors() {
+        return this.__currentColors.get();
+    }
+    set currentColors(newValue: ThemeColors) {
+        this.__currentColors.set(newValue);
     }
     private __currentTabIndex: ObservedPropertySimplePU<number>;
     get currentTabIndex() {
@@ -330,6 +384,41 @@ class HomePage extends ViewPU {
     }
     set eventDates(newValue: Set<string>) {
         this.__eventDates.set(newValue);
+    }
+    private __editingTodoId: ObservedPropertySimplePU<number>; // 正在编辑的 Todo ID（0 表示不在编辑）
+    get editingTodoId() {
+        return this.__editingTodoId.get();
+    }
+    set editingTodoId(newValue: number) {
+        this.__editingTodoId.set(newValue);
+    }
+    private __isAddingRemark: ObservedPropertySimplePU<boolean>; // 展开备注输入框
+    get isAddingRemark() {
+        return this.__isAddingRemark.get();
+    }
+    set isAddingRemark(newValue: boolean) {
+        this.__isAddingRemark.set(newValue);
+    }
+    private __showRemindPicker: ObservedPropertySimplePU<boolean>; // 显示时间选择器
+    get showRemindPicker() {
+        return this.__showRemindPicker.get();
+    }
+    set showRemindPicker(newValue: boolean) {
+        this.__showRemindPicker.set(newValue);
+    }
+    private __showTagInput: ObservedPropertySimplePU<boolean>; // 显示标签输入框
+    get showTagInput() {
+        return this.__showTagInput.get();
+    }
+    set showTagInput(newValue: boolean) {
+        this.__showTagInput.set(newValue);
+    }
+    private __tagInputBuffer: ObservedPropertySimplePU<string>; // 标签输入缓冲
+    get tagInputBuffer() {
+        return this.__tagInputBuffer.get();
+    }
+    set tagInputBuffer(newValue: string) {
+        this.__tagInputBuffer.set(newValue);
     }
     // ---- 随手记 (Plog/Moment) 状态 ----
     private __moments: ObservedPropertyObjectPU<DiaryPost[]>;
@@ -590,13 +679,109 @@ class HomePage extends ViewPU {
             return;
         }
         try {
-            await TodoViewModel.addTodo(this.newTodoText.trim(), this.selectedDate);
+            const newId = await TodoViewModel.addTodo(this.newTodoText.trim(), this.selectedDate);
             this.newTodoText = '';
             await this.loadTodos();
+            // 自动进入编辑模式
+            this.editingTodoId = newId;
         }
         catch (error) {
             console.error('添加待办失败:', error);
         }
+    }
+    /**
+     * 创建空白 Todo 并自动进入编辑状态
+     * 使用 setTimeout 延迟聚焦，确保 TextInput 已渲染完毕
+     */
+    async addBlankTodo(): Promise<void> {
+        try {
+            const newId = await TodoViewModel.addTodo('', this.selectedDate);
+            await this.loadTodos();
+            this.editingTodoId = newId;
+            this.isAddingRemark = false;
+            this.showRemindPicker = false;
+            // 延迟一帧请求焦点，等待 TextInput 渲染完成
+            setTimeout(() => {
+                focusControl.requestFocus(`TodoInput_${newId}`);
+            }, 100);
+        }
+        catch (error) {
+            console.error('创建空白待办失败:', error);
+        }
+    }
+    /**
+     * 保存编辑中的 Todo 内容（包含备注）
+     */
+    async saveEditingTodo(id: number, content: string, remark?: string): Promise<void> {
+        try {
+            await TodoViewModel.updateTodoContent(id, content);
+            if (remark !== undefined) {
+                const todo = this.todos.find(t => t.id === id);
+                const remindTime = todo?.remindTime ?? 0;
+                await TodoViewModel.updateTodoRemindAndRemark(id, remindTime, remark);
+            }
+            const updatedList: TodoItem[] = await TodoViewModel.getTodosByDate(this.selectedDate);
+            this.todos = [...updatedList];
+        }
+        catch (error) {
+            console.error(`[HomePage] saveEditingTodo failed: ${JSON.stringify(error)}`);
+        }
+        finally {
+            this.editingTodoId = 0;
+            this.isAddingRemark = false;
+            this.showRemindPicker = false;
+        }
+    }
+    /**
+     * 取消编辑
+     */
+    cancelEditing(): void {
+        const editingTodo = this.todos.find(t => t.id === this.editingTodoId);
+        if (editingTodo && !editingTodo.content.trim()) {
+            this.deleteTodo(this.editingTodoId);
+        }
+        this.editingTodoId = 0;
+        this.isAddingRemark = false;
+        this.showRemindPicker = false;
+    }
+    /**
+     * 拖拽排序回调
+     */
+    async onTodoReorder(fromIndex: number, toIndex: number): Promise<void> {
+        const reordered = [...this.todos];
+        const GeneratedDestructArray_1 = reordered.splice(fromIndex, 1);
+        const moved = GeneratedDestructArray_1[0];
+        reordered.splice(toIndex, 0, moved);
+        try {
+            await TodoViewModel.reorderTodos(reordered);
+            await this.loadTodos();
+        }
+        catch (error) {
+            console.error('排序失败:', error);
+        }
+    }
+    /**
+     * 设置提醒时间 - 直接修改 todos 数组中的对应项（响应式）
+     */
+    setRemindTime(hour: number, minute: number): void {
+        const now = new Date();
+        const remindDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
+        const timestamp = remindDate.getTime();
+        const index = this.todos.findIndex(t => t.id === this.editingTodoId);
+        if (index > -1) {
+            // 1. 直接获取原对象的引用 (去除 {... } 展开操作)
+            let currentItem = this.todos[index];
+            // 2. 直接修改提醒时间
+            currentItem.remindTime = timestamp;
+            // 3. 用 splice 原地替换，这步操作专门用来通知 ArkUI 刷新列表
+            this.todos.splice(index, 1, currentItem);
+            // 4. 同步更新到底层 ViewModel / 数据库
+            // (加个判断确保 id 不是 undefined 更安全)
+            if (currentItem.id !== undefined) {
+                TodoViewModel.updateTodoRemindAndRemark(currentItem.id, timestamp, currentItem.remark || '');
+            }
+        }
+        this.showRemindPicker = false;
     }
     async toggleTodoStatus(id: number): Promise<void> {
         const todo = this.todos.find(t => t.id === id);
@@ -614,6 +799,11 @@ class HomePage extends ViewPU {
     async deleteTodo(id: number): Promise<void> {
         try {
             await TodoViewModel.deleteTodo(id);
+            if (this.editingTodoId === id) {
+                this.editingTodoId = 0;
+                this.isAddingRemark = false;
+                this.showRemindPicker = false;
+            }
             await this.loadTodos();
         }
         catch (error) {
@@ -622,6 +812,87 @@ class HomePage extends ViewPU {
     }
     toggleCalendar(): void {
         this.isCalendarExpanded = !this.isCalendarExpanded;
+    }
+    /**
+     * 获取当前正在编辑的 Todo
+     */
+    private getEditingTodo(): TodoItem | undefined {
+        return this.todos.find(t => t.id === this.editingTodoId);
+    }
+    /**
+     * 设置 Todo 位置
+     */
+    async setTodoLocation(location: string): Promise<void> {
+        const todo = this.getEditingTodo();
+        if (!todo || todo.id === undefined)
+            return;
+        const index = this.todos.findIndex(t => t.id === todo.id);
+        if (index > -1) {
+            let currentItem = this.todos[index];
+            currentItem.location = location;
+            this.todos.splice(index, 1, currentItem);
+            await TodoViewModel.updateTodoExtras(todo.id, location, currentItem.tag || '', currentItem.flagged || false, currentItem.imageUris || '');
+        }
+    }
+    /**
+     * 切换 Todo 旗帜标记
+     */
+    async toggleTodoFlagged(): Promise<void> {
+        const todo = this.getEditingTodo();
+        if (!todo || todo.id === undefined)
+            return;
+        const index = this.todos.findIndex(t => t.id === todo.id);
+        if (index > -1) {
+            let currentItem = this.todos[index];
+            currentItem.flagged = !currentItem.flagged;
+            this.todos.splice(index, 1, currentItem);
+            await TodoViewModel.updateTodoExtras(todo.id, currentItem.location || '', currentItem.tag || '', currentItem.flagged || false, currentItem.imageUris || '');
+        }
+    }
+    /**
+     * 设置 Todo 标签
+     */
+    async setTodoTag(tag: string): Promise<void> {
+        const todo = this.getEditingTodo();
+        if (!todo || todo.id === undefined)
+            return;
+        const index = this.todos.findIndex(t => t.id === todo.id);
+        if (index > -1) {
+            let currentItem = this.todos[index];
+            currentItem.tag = tag;
+            this.todos.splice(index, 1, currentItem);
+            await TodoViewModel.updateTodoExtras(todo.id, currentItem.location || '', tag, currentItem.flagged || false, currentItem.imageUris || '');
+        }
+        this.showTagInput = false;
+    }
+    /**
+     * 选择图片添加到 Todo
+     */
+    async pickTodoImage(): Promise<void> {
+        const todo = this.getEditingTodo();
+        if (!todo || todo.id === undefined)
+            return;
+        try {
+            const photoPicker = photoAccessHelper.getPhotoAccessHelper(getContext(this));
+            const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+            photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+            photoSelectOptions.maxSelectNumber = 1;
+            const photoViewPicker = new photoAccessHelper.PhotoViewPicker();
+            const result = await photoViewPicker.select(photoSelectOptions);
+            if (result && result.photoUris && result.photoUris.length > 0) {
+                const uri = result.photoUris[0];
+                const index = this.todos.findIndex(t => t.id === todo.id);
+                if (index > -1) {
+                    let currentItem = this.todos[index];
+                    currentItem.imageUris = uri;
+                    this.todos.splice(index, 1, currentItem);
+                    await TodoViewModel.updateTodoExtras(todo.id, currentItem.location || '', currentItem.tag || '', currentItem.flagged || false, uri);
+                }
+            }
+        }
+        catch (error) {
+            console.error('选择图片失败:', error);
+        }
     }
     // ==================== 随手记方法 ====================
     async loadMoments(): Promise<void> {
@@ -772,7 +1043,7 @@ class HomePage extends ViewPU {
             this.selectedMomentIds.clear();
             this.isMultiSelectMode = false;
             await this.loadMoments();
-            promptAction.showToast({ message: { "id": 16777229, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            promptAction.showToast({ message: { "id": 16777232, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         }
         catch (error) {
             console.error('创建合集失败:', error);
@@ -837,7 +1108,7 @@ class HomePage extends ViewPU {
                 thumbnail: imageUris.length > 0 ? imageUris[0] : ''
             };
             await PlogViewModel.createPlog(insertParams);
-            promptAction.showToast({ message: { "id": 16777255, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            promptAction.showToast({ message: { "id": 16777268, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         }
         catch (error) {
             console.error('生成手账失败:', error);
@@ -903,7 +1174,7 @@ class HomePage extends ViewPU {
                 index: this.currentTabIndex
             });
             Tabs.barHeight(this.isMultiSelectMode && this.currentTabIndex === 1 ? 0 : 56);
-            Tabs.barBackgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Tabs.barBackgroundColor(this.currentColors.bgCard);
             Tabs.animationDuration(200);
             Tabs.onChange((index: number) => {
                 this.currentTabIndex = index;
@@ -941,7 +1212,7 @@ class HomePage extends ViewPU {
                 {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         if (isInitialRender) {
-                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 528, col: 11 });
+                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 730, col: 11 });
                             ViewPU.create(componentCall);
                             let paramsLambda = () => {
                                 return {};
@@ -967,43 +1238,112 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
             Column.width('100%');
-            Column.height('100%');
+            Column.height(56);
             Column.justifyContent(FlexAlign.Center);
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            SymbolGlyph.create(this.currentTabIndex === index ? this.tabIconsActive[index] : this.tabIcons[index]);
-            SymbolGlyph.fontSize(24);
-            SymbolGlyph.fontColor([{ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
-            SymbolGlyph.renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY);
-            SymbolGlyph.effectStrategy(SymbolEffectStrategy.HIERARCHICAL);
-        }, SymbolGlyph);
+            If.create();
+            // 1. 动态判断图标：根据索引选择系统内置的矢量符号
+            if (index === 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // Tab 0: 待办（打勾文档图标）
+                        SymbolGlyph.create({ "id": 125831261, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        // Tab 0: 待办（打勾文档图标）
+                        SymbolGlyph.fontSize(22);
+                        // Tab 0: 待办（打勾文档图标）
+                        SymbolGlyph.fontColor([this.currentTabIndex === 0 ? this.currentColors.primary : this.currentColors.textMuted]);
+                    }, SymbolGlyph);
+                });
+            }
+            else if (index === 1) {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // Tab 1: 手账 / 随手记（书本/画笔图标，这里用内置的经典书本符号）
+                        SymbolGlyph.create({ "id": 125831913, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        // Tab 1: 手账 / 随手记（书本/画笔图标，这里用内置的经典书本符号）
+                        SymbolGlyph.fontSize(22);
+                        // Tab 1: 手账 / 随手记（书本/画笔图标，这里用内置的经典书本符号）
+                        SymbolGlyph.fontColor([this.currentTabIndex === 1 ? this.currentColors.primary : this.currentColors.textMuted]);
+                    }, SymbolGlyph);
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(2, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        // Tab 2: 设置（齿轮图标）
+                        SymbolGlyph.create({ "id": 125831493, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        // Tab 2: 设置（齿轮图标）
+                        SymbolGlyph.fontSize(22);
+                        // Tab 2: 设置（齿轮图标）
+                        SymbolGlyph.fontColor([this.currentTabIndex === 2 ? this.currentColors.primary : this.currentColors.textMuted]);
+                    }, SymbolGlyph);
+                });
+            }
+        }, If);
+        If.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create(this.tabTitles[index]);
-            Text.fontSize(10);
-            Text.fontColor(this.currentTabIndex === index ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.margin({ top: 2 });
+            // 2. 动态判断文字颜色
+            Text.create(index === 0 ? '待办' : index === 1 ? '手账' : '设置');
+            // 2. 动态判断文字颜色
+            Text.fontSize(11);
+            // 2. 动态判断文字颜色
+            Text.fontWeight(this.currentTabIndex === index ? FontWeight.Medium : FontWeight.Normal);
+            // 2. 动态判断文字颜色
+            Text.fontColor(this.currentTabIndex === index ? this.currentColors.primary : this.currentColors.textMuted);
+            // 2. 动态判断文字颜色
+            Text.margin({ top: 4 });
         }, Text);
+        // 2. 动态判断文字颜色
         Text.pop();
         Column.pop();
     }
     // ==================== Todo 内容区 ====================
     TodoContent(parent = null) {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 💡 【大布局重构】：最外层保持一个大 Column 占满全屏
             Column.create();
+            // 💡 【大布局重构】：最外层保持一个大 Column 占满全屏
             Column.width('100%');
+            // 💡 【大布局重构】：最外层保持一个大 Column 占满全屏
             Column.height('100%');
-            Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            // 💡 【大布局重构】：最外层保持一个大 Column 占满全屏
+            Column.expandSafeArea([SafeAreaType.KEYBOARD], [SafeAreaEdge.BOTTOM]);
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 💡 核心点 1：将日历、列表和悬浮加号包裹在这个独立的 Stack 中
+            // 并且赋予它 .layoutWeight(1)，这意味着它是“弹性主体”
+            Stack.create({ alignContent: Alignment.BottomEnd });
+            // 💡 核心点 1：将日历、列表和悬浮加号包裹在这个独立的 Stack 中
+            // 并且赋予它 .layoutWeight(1)，这意味着它是“弹性主体”
+            Stack.width('100%');
+            // 💡 核心点 1：将日历、列表和悬浮加号包裹在这个独立的 Stack 中
+            // 并且赋予它 .layoutWeight(1)，这意味着它是“弹性主体”
+            Stack.layoutWeight(1);
+        }, Stack);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 主体内容滚动区
+            Column.create();
+            // 主体内容滚动区
+            Column.width('100%');
+            // 主体内容滚动区
+            Column.height('100%');
+            // 主体内容滚动区
+            Column.backgroundColor(this.currentColors.bgMain);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 1. 日历头部行
             Row.create();
+            // 1. 日历头部行
             Row.width('100%');
+            // 1. 日历头部行
             Row.padding({ left: 16, right: 16, top: 16, bottom: 8 });
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create(DateUtils.formatDisplayDate(this.selectedDate));
-            Text.fontSize({ "id": 16777320, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777337, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Bold);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -1021,11 +1361,12 @@ class HomePage extends ViewPU {
             SymbolGlyph.create({ "id": 125832666, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             globalThis.Context.animation({ duration: 200 });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
             SymbolGlyph.rotate({ angle: this.isCalendarExpanded ? 180 : 0 });
             globalThis.Context.animation(null);
         }, SymbolGlyph);
         Button.pop();
+        // 1. 日历头部行
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             __Common__.create();
@@ -1034,16 +1375,20 @@ class HomePage extends ViewPU {
         {
             this.observeComponentCreation2((elmtId, isInitialRender) => {
                 if (isInitialRender) {
-                    let componentCall = new WeekCalendarComponent(this, {
+                    let componentCall = new 
+                    // 2. 周日历
+                    WeekCalendarComponent(this, {
                         currentWeek: this.currentWeek,
                         selectedDate: this.selectedDate,
+                        colors: this.currentColors,
                         onDateSelected: (date: string) => this.onDateSelected(date)
-                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 598, col: 7 });
+                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 823, col: 11 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
                         return {
                             currentWeek: this.currentWeek,
                             selectedDate: this.selectedDate,
+                            colors: this.currentColors,
                             onDateSelected: (date: string) => this.onDateSelected(date)
                         };
                     };
@@ -1052,7 +1397,8 @@ class HomePage extends ViewPU {
                 else {
                     this.updateStateVarsOfChildByElmtId(elmtId, {
                         currentWeek: this.currentWeek,
-                        selectedDate: this.selectedDate
+                        selectedDate: this.selectedDate,
+                        colors: this.currentColors
                     });
                 }
             }, { name: "WeekCalendarComponent" });
@@ -1060,6 +1406,7 @@ class HomePage extends ViewPU {
         __Common__.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
+            // 3. 月日历展开
             if (this.isCalendarExpanded) {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -1073,17 +1420,19 @@ class HomePage extends ViewPU {
                                     calendar: this.monthCalendar,
                                     selectedDate: this.selectedDate,
                                     eventDates: this.eventDates,
+                                    colors: this.currentColors,
                                     onDateSelected: (date: string) => {
                                         this.onDateSelected(date);
                                         this.toggleCalendar();
                                     }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 606, col: 9 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 833, col: 13 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
                                         calendar: this.monthCalendar,
                                         selectedDate: this.selectedDate,
                                         eventDates: this.eventDates,
+                                        colors: this.currentColors,
                                         onDateSelected: (date: string) => {
                                             this.onDateSelected(date);
                                             this.toggleCalendar();
@@ -1096,7 +1445,8 @@ class HomePage extends ViewPU {
                                 this.updateStateVarsOfChildByElmtId(elmtId, {
                                     calendar: this.monthCalendar,
                                     selectedDate: this.selectedDate,
-                                    eventDates: this.eventDates
+                                    eventDates: this.eventDates,
+                                    colors: this.currentColors
                                 });
                             }
                         }, { name: "MonthCalendarComponent" });
@@ -1112,34 +1462,33 @@ class HomePage extends ViewPU {
         If.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Divider.create();
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color(this.currentColors.border);
             Divider.margin({ top: this.isCalendarExpanded ? 12 : 8, bottom: 8 });
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 4. 标题栏：提醒（iOS 风格大标题）
             Row.create();
+            // 4. 标题栏：提醒（iOS 风格大标题）
             Row.width('100%');
-            Row.padding({ left: 16, right: 16, bottom: 8 });
+            // 4. 标题栏：提醒（iOS 风格大标题）
+            Row.padding({ left: 16, right: 16, top: 8, bottom: 8 });
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777289, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontWeight(FontWeight.Medium);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create('提醒');
+            Text.fontSize(32);
+            Text.fontWeight(FontWeight.Bold);
+            Text.fontColor(this.currentColors.primary);
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Blank.create();
         }, Blank);
         Blank.pop();
-        this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create(`${this.todos.filter(t => t.status === 'pending').length} 未完成`);
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-        }, Text);
-        Text.pop();
+        // 4. 标题栏：提醒（iOS 风格大标题）
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
+            // 5. 待办列表
             if (this.isLoading) {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -1150,101 +1499,174 @@ class HomePage extends ViewPU {
                     }, LoadingProgress);
                 });
             }
-            else if (this.todos.length === 0) {
+            else {
                 this.ifElseBranchUpdateFunction(1, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Column.create();
-                        Column.width('100%');
-                        Column.layoutWeight(1);
-                        Column.justifyContent(FlexAlign.Center);
-                    }, Column);
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create('📝');
-                        Text.fontSize(48);
-                        Text.margin({ bottom: 12 });
-                    }, Text);
-                    Text.pop();
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create('今天还没有任务');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                    }, Text);
-                    Text.pop();
-                    this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create('点击下方按钮添加新任务');
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.margin({ top: 4 });
-                    }, Text);
-                    Text.pop();
-                    Column.pop();
-                });
-            }
-            else {
-                this.ifElseBranchUpdateFunction(2, () => {
-                    {
-                        this.observeComponentCreation2((elmtId, isInitialRender) => {
-                            if (isInitialRender) {
-                                let componentCall = new TodoListComponent(this, {
-                                    todos: this.todos,
-                                    onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
-                                    onDelete: (id: number) => { this.deleteTodo(id); },
-                                    onReorder: (fromIndex: number, toIndex: number) => { }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 659, col: 9 });
-                                ViewPU.create(componentCall);
-                                let paramsLambda = () => {
-                                    return {
-                                        todos: this.todos,
-                                        onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
-                                        onDelete: (id: number) => { this.deleteTodo(id); },
-                                        onReorder: (fromIndex: number, toIndex: number) => { }
-                                    };
-                                };
-                                componentCall.paramsGenerator_ = paramsLambda;
-                            }
-                            else {
-                                this.updateStateVarsOfChildByElmtId(elmtId, {
-                                    todos: this.todos
-                                });
-                            }
-                        }, { name: "TodoListComponent" });
-                    }
+                        If.create();
+                        if (this.todos.length === 0 && this.editingTodoId === 0) {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create();
+                                    Column.width('100%');
+                                    Column.layoutWeight(1);
+                                    Column.justifyContent(FlexAlign.Center);
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('📝');
+                                    Text.fontSize(48);
+                                    Text.margin({ bottom: 12 });
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('今天还没有任务');
+                                    Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor(this.currentColors.textMuted);
+                                }, Text);
+                                Text.pop();
+                                Column.pop();
+                            });
+                        }
+                        else {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    __Common__.create();
+                                    __Common__.borderRadius({ "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    __Common__.backgroundColor(this.currentColors.bgCard);
+                                    __Common__.shadow({
+                                        radius: 12,
+                                        color: '#0d000000',
+                                        offsetX: 0,
+                                        offsetY: 4
+                                    });
+                                }, __Common__);
+                                {
+                                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                        if (isInitialRender) {
+                                            let componentCall = new TodoListComponent(this, {
+                                                todos: this.todos,
+                                                editingTodoId: this.editingTodoId,
+                                                isAddingRemark: this.isAddingRemark,
+                                                onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
+                                                onDelete: (id: number) => { this.deleteTodo(id); },
+                                                onReorder: (fromIndex: number, toIndex: number) => { this.onTodoReorder(fromIndex, toIndex); },
+                                                onStartEdit: (id: number) => {
+                                                    this.editingTodoId = id;
+                                                    this.isAddingRemark = !!this.todos.find(t => t.id === id)?.remark;
+                                                    this.showTagInput = false;
+                                                },
+                                                onContentChange: (id: number, content: string) => {
+                                                    const idx = this.todos.findIndex(t => t.id === id);
+                                                    if (idx >= 0) {
+                                                        this.todos[idx].content = content;
+                                                    }
+                                                },
+                                                onEditSubmit: async (id: number, content: string, remark?: string) => {
+                                                    await this.saveEditingTodo(id, content, remark);
+                                                },
+                                                onAddRemarkClick: () => {
+                                                    this.isAddingRemark = true;
+                                                }
+                                            }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 874, col: 15 });
+                                            ViewPU.create(componentCall);
+                                            let paramsLambda = () => {
+                                                return {
+                                                    todos: this.todos,
+                                                    editingTodoId: this.editingTodoId,
+                                                    isAddingRemark: this.isAddingRemark,
+                                                    onToggleStatus: (id: number) => { this.toggleTodoStatus(id); },
+                                                    onDelete: (id: number) => { this.deleteTodo(id); },
+                                                    onReorder: (fromIndex: number, toIndex: number) => { this.onTodoReorder(fromIndex, toIndex); },
+                                                    onStartEdit: (id: number) => {
+                                                        this.editingTodoId = id;
+                                                        this.isAddingRemark = !!this.todos.find(t => t.id === id)?.remark;
+                                                        this.showTagInput = false;
+                                                    },
+                                                    onContentChange: (id: number, content: string) => {
+                                                        const idx = this.todos.findIndex(t => t.id === id);
+                                                        if (idx >= 0) {
+                                                            this.todos[idx].content = content;
+                                                        }
+                                                    },
+                                                    onEditSubmit: async (id: number, content: string, remark?: string) => {
+                                                        await this.saveEditingTodo(id, content, remark);
+                                                    },
+                                                    onAddRemarkClick: () => {
+                                                        this.isAddingRemark = true;
+                                                    }
+                                                };
+                                            };
+                                            componentCall.paramsGenerator_ = paramsLambda;
+                                        }
+                                        else {
+                                            this.updateStateVarsOfChildByElmtId(elmtId, {
+                                                todos: this.todos,
+                                                editingTodoId: this.editingTodoId,
+                                                isAddingRemark: this.isAddingRemark
+                                            });
+                                        }
+                                    }, { name: "TodoListComponent" });
+                                }
+                                __Common__.pop();
+                            });
+                        }
+                    }, If);
+                    If.pop();
                 });
             }
         }, If);
         If.pop();
+        // 主体内容滚动区
+        Column.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Row.create();
-            Row.width('100%');
-            Row.padding(16);
-            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Row.shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: -2 });
-        }, Row);
+            If.create();
+            // 悬浮加号按钮（只在非编辑态显示，隶属于 Stack 右下角）
+            if (this.editingTodoId === 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Button.createWithChild({ type: ButtonType.Circle });
+                        Button.width(56);
+                        Button.height(56);
+                        Button.backgroundColor(this.currentColors.primary);
+                        Button.margin({ right: 24, bottom: 24 });
+                        Button.shadow({ radius: 8, color: '#30000000', offsetX: 0, offsetY: 4 });
+                        Button.zIndex(999);
+                        Button.onClick(() => { this.addBlankTodo(); });
+                    }, Button);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('+');
+                        Text.fontSize(36);
+                        Text.fontColor(Color.White);
+                    }, Text);
+                    Text.pop();
+                    Button.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        // 💡 核心点 1：将日历、列表和悬浮加号包裹在这个独立的 Stack 中
+        // 并且赋予它 .layoutWeight(1)，这意味着它是“弹性主体”
+        Stack.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            TextInput.create({ placeholder: { "id": 16777220, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, text: this.newTodoText });
-            TextInput.layoutWeight(1);
-            TextInput.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.borderRadius({ "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.padding({ left: 16, right: 16 });
-            TextInput.onChange((value: string) => { this.newTodoText = value; });
-            TextInput.onSubmit(() => { this.addTodo(); });
-        }, TextInput);
-        this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Button.createWithLabel('+');
-            Button.width(48);
-            Button.height(48);
-            Button.fontSize(24);
-            Button.backgroundColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Button.borderRadius(24);
-            Button.margin({ left: 12 });
-            Button.onClick(() => { this.addTodo(); });
-        }, Button);
-        Button.pop();
-        Row.pop();
+            If.create();
+            // 💡 核心点 2：把你的 `EditingToolbar()` 彻底解放出来，放到 Stack 的正下方、大 Column 的最底部！
+            if (this.editingTodoId > 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.EditingToolbar.bind(this)();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        // 💡 【大布局重构】：最外层保持一个大 Column 占满全屏
         Column.pop();
     }
-    // ==================== 随手记内容区 ====================
     MomentContent(parent = null) {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Stack.create({ alignContent: Alignment.BottomEnd });
@@ -1255,7 +1677,7 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.height('100%');
-            Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgMain);
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
@@ -1275,10 +1697,10 @@ class HomePage extends ViewPU {
                             .animation({ duration: 250, curve: Curve.EaseInOut }));
                     }, Row);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Button.createWithLabel({ "id": 16777341, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Button.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.createWithLabel({ "id": 16777254, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.backgroundColor(Color.Transparent);
-                        Button.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontColor(this.currentColors.primary);
                         Button.height(32);
                         Button.onClick(() => {
                             Context.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
@@ -1295,9 +1717,9 @@ class HomePage extends ViewPU {
                         Text.create(this.selectedMomentIds.size > 0 ?
                             `已选 ${this.selectedMomentIds.size} 项` : '选择项目');
                         globalThis.Context.animation({ duration: 150 });
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Medium);
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
                         globalThis.Context.animation(null);
                     }, Text);
                     Text.pop();
@@ -1306,10 +1728,10 @@ class HomePage extends ViewPU {
                     }, Blank);
                     Blank.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Button.createWithLabel({ "id": 16777332, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Button.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.createWithLabel({ "id": 16777231, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.backgroundColor(Color.Transparent);
-                        Button.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontColor(this.currentColors.primary);
                         Button.height(32);
                         Button.onClick(() => {
                             Context.animateTo({ duration: 250, curve: Curve.EaseInOut }, () => {
@@ -1337,10 +1759,10 @@ class HomePage extends ViewPU {
                             .animation({ duration: 250, curve: Curve.EaseInOut }));
                     }, Row);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create({ "id": 16777244, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontSize({ "id": 16777320, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.create({ "id": 16777257, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777337, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Bold);
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -1357,7 +1779,7 @@ class HomePage extends ViewPU {
                         // 搜索按钮
                         Button.backgroundColor(Color.Transparent);
                         // 搜索按钮
-                        Button.border({ width: 1, color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, radius: 20 });
+                        Button.border({ width: 1, color: this.currentColors.border, radius: 20 });
                         // 搜索按钮
                         Button.onClick(() => {
                             Context.animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
@@ -1368,7 +1790,7 @@ class HomePage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         SymbolGlyph.create({ "id": 125831500, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         SymbolGlyph.fontSize(20);
-                        SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                        SymbolGlyph.fontColor([this.currentColors.textMuted]);
                     }, SymbolGlyph);
                     // 搜索按钮
                     Button.pop();
@@ -1382,7 +1804,7 @@ class HomePage extends ViewPU {
                         // 多选按钮
                         Button.backgroundColor(Color.Transparent);
                         // 多选按钮
-                        Button.border({ width: 1, color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, radius: 20 });
+                        Button.border({ width: 1, color: this.currentColors.border, radius: 20 });
                         // 多选按钮
                         Button.margin({ left: 10 });
                         // 多选按钮
@@ -1395,7 +1817,7 @@ class HomePage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         SymbolGlyph.create({ "id": 125831490, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         SymbolGlyph.fontSize(20);
-                        SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                        SymbolGlyph.fontColor([this.currentColors.textMuted]);
                     }, SymbolGlyph);
                     // 多选按钮
                     Button.pop();
@@ -1409,7 +1831,7 @@ class HomePage extends ViewPU {
                         // 添加按钮
                         Button.backgroundColor(Color.Transparent);
                         // 添加按钮
-                        Button.border({ width: 1, color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, radius: 20 });
+                        Button.border({ width: 1, color: this.currentColors.border, radius: 20 });
                         // 添加按钮
                         Button.margin({ left: 10 });
                         // 添加按钮
@@ -1423,7 +1845,7 @@ class HomePage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         SymbolGlyph.create({ "id": 125831481, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         SymbolGlyph.fontSize(20);
-                        SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                        SymbolGlyph.fontColor([this.currentColors.textMuted]);
                     }, SymbolGlyph);
                     // 添加按钮
                     Button.pop();
@@ -1437,7 +1859,7 @@ class HomePage extends ViewPU {
                         // 更多按钮
                         Button.backgroundColor(Color.Transparent);
                         // 更多按钮
-                        Button.border({ width: 1, color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, radius: 20 });
+                        Button.border({ width: 1, color: this.currentColors.border, radius: 20 });
                         // 更多按钮
                         Button.margin({ left: 10 });
                         // 更多按钮
@@ -1450,7 +1872,7 @@ class HomePage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('⋮');
                         Text.fontSize(22);
-                        Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
                     }, Text);
                     Text.pop();
                     // 更多按钮
@@ -1463,7 +1885,7 @@ class HomePage extends ViewPU {
         If.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Divider.create();
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color(this.currentColors.border);
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 搜索框（从导航栏下方展开，非整体滑入）
@@ -1479,18 +1901,18 @@ class HomePage extends ViewPU {
             Row.create({ space: 8 });
             Row.width('100%');
             Row.padding({ left: 16, right: 16, top: 8, bottom: 8 });
-            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.backgroundColor(this.currentColors.bgCard);
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             TextInput.create({
                 placeholder: '搜索时间、内容、地点…',
                 text: this.searchKeyword
             });
-            TextInput.placeholderColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.placeholderColor(this.currentColors.textMuted);
+            TextInput.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             TextInput.height(36);
-            TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             TextInput.layoutWeight(1);
             TextInput.enabled(this.showSearchBar);
             TextInput.onChange((value: string) => {
@@ -1513,7 +1935,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(14);
-            SymbolGlyph.fontColor([{ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         Button.pop();
         Row.pop();
@@ -1547,15 +1969,15 @@ class HomePage extends ViewPU {
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create({ "id": 16777237, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.create({ "id": 16777248, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
-                        Text.create({ "id": 16777238, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.create({ "id": 16777249, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
                         Text.margin({ top: 4 });
                     }, Text);
                     Text.pop();
@@ -1762,10 +2184,10 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.padding(16);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius({ "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Column.margin({ bottom: 12 });
-            Column.shadow({ radius: 4, color: '#08000000', offsetX: 0, offsetY: 2 });
+            Column.shadow({ radius: 12, color: '#0d000000', offsetX: 0, offsetY: 4 });
             Column.onClick(() => {
                 if (this.isMultiSelectMode) {
                     this.toggleMomentSelection(moment.id);
@@ -1793,8 +2215,10 @@ class HomePage extends ViewPU {
                     }, Row);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Circle.create({ width: 22, height: 22 });
-                        Circle.fill(this.selectedMomentIds.has(moment.id) ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : Color.Transparent);
-                        Circle.stroke(this.selectedMomentIds.has(moment.id) ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Circle.fill(this.selectedMomentIds.has(moment.id) ?
+                            this.currentColors.primary : Color.Transparent);
+                        Circle.stroke(this.selectedMomentIds.has(moment.id) ?
+                            this.currentColors.primary : this.currentColors.textMuted);
                         Circle.strokeWidth(2);
                     }, Circle);
                     Row.pop();
@@ -1808,8 +2232,8 @@ class HomePage extends ViewPU {
         If.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create(DateUtils.formatTime(moment.timestamp));
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -1818,8 +2242,8 @@ class HomePage extends ViewPU {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create(`📍 ${moment.location}`);
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
                         Text.margin({ left: 12 });
                     }, Text);
                     Text.pop();
@@ -1840,8 +2264,8 @@ class HomePage extends ViewPU {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create(moment.content);
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
                         Text.lineHeight(24);
                         Text.width('100%');
                         Text.margin({ bottom: moment.mediaUrls && moment.mediaUrls.length > 0 ? 12 : 0 });
@@ -1888,7 +2312,7 @@ class HomePage extends ViewPU {
                                         Image.width('100%');
                                         Image.height('100%');
                                         Image.objectFit(ImageFit.Cover);
-                                        Image.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                        Image.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                     }, Image);
                                     GridItem.pop();
                                 };
@@ -1916,8 +2340,8 @@ class HomePage extends ViewPU {
             Column.width('100%');
             Column.height('100%');
             Column.padding(this.isAddMode ? 16 : 20);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius(this.isAddMode ? 0 : { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius(this.isAddMode ? 0 : { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 对话框标题（左侧 X，中间标题，右侧发布）
@@ -1950,7 +2374,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         // 左侧关闭按钮
         Button.pop();
@@ -1962,11 +2386,11 @@ class HomePage extends ViewPU {
             // 中间标题
             Text.create('发布随手记');
             // 中间标题
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 中间标题
             Text.fontWeight(FontWeight.Medium);
             // 中间标题
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         // 中间标题
         Text.pop();
@@ -1978,11 +2402,12 @@ class HomePage extends ViewPU {
             // 右侧发布按钮
             Button.createWithLabel('发布');
             // 右侧发布按钮
-            Button.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 右侧发布按钮
             Button.fontColor(Color.White);
             // 右侧发布按钮
-            Button.backgroundColor(this.newPostContent || this.newPostMediaUris.length > 0 ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : '#CCCCCC');
+            Button.backgroundColor(this.newPostContent || this.newPostMediaUris.length > 0 ?
+                this.currentColors.primary : '#CCCCCC');
             // 右侧发布按钮
             Button.borderRadius(16);
             // 右侧发布按钮
@@ -1998,17 +2423,17 @@ class HomePage extends ViewPU {
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 文字输入区
-            TextArea.create({ placeholder: { "id": 16777240, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, text: this.newPostContent });
+            TextArea.create({ placeholder: { "id": 16777251, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, text: this.newPostContent });
             // 文字输入区
             TextArea.width('100%');
             // 文字输入区
             TextArea.height(this.isAddMode ? 200 : 120);
             // 文字输入区
-            TextArea.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 文字输入区
-            TextArea.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.backgroundColor(this.currentColors.bgMain);
             // 文字输入区
-            TextArea.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 文字输入区
             TextArea.padding(12);
             // 文字输入区
@@ -2075,7 +2500,7 @@ class HomePage extends ViewPU {
             // 添加图片的大加号按钮
             Row.height(100);
             // 添加图片的大加号按钮
-            Row.border({ width: 1, color: { "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            Row.border({ width: 1, color: this.currentColors.border });
             // 添加图片的大加号按钮
             Row.borderRadius(6);
             // 添加图片的大加号按钮
@@ -2088,7 +2513,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('＋');
             Text.fontSize(36);
-            Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
         }, Text);
         Text.pop();
         // 添加图片的大加号按钮
@@ -2111,23 +2536,23 @@ class HomePage extends ViewPU {
             // 添加位置（可输入的文字框）
             Row.padding({ left: 12, right: 8, top: 4, bottom: 4 });
             // 添加位置（可输入的文字框）
-            Row.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.backgroundColor(this.currentColors.bgMain);
             // 添加位置（可输入的文字框）
-            Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 添加位置（可输入的文字框）
             Row.alignItems(VerticalAlign.Center);
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('📍');
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             TextInput.create({ placeholder: '添加位置', text: this.newPostLocation });
             TextInput.layoutWeight(1);
-            TextInput.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            TextInput.placeholderColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontColor(this.currentColors.textMain);
+            TextInput.placeholderColor(this.currentColors.textMuted);
             TextInput.backgroundColor(Color.Transparent);
             TextInput.padding(0);
             TextInput.borderRadius(0);
@@ -2147,7 +2572,7 @@ class HomePage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         SymbolGlyph.fontSize(12);
-                        SymbolGlyph.fontColor([{ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                        SymbolGlyph.fontColor([this.currentColors.textMuted]);
                     }, SymbolGlyph);
                     Button.pop();
                 });
@@ -2184,8 +2609,8 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.padding(20);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius({ topLeft: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ topLeft: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 标题栏：返回  新建合集  创建
@@ -2209,7 +2634,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125832663, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         Button.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2218,9 +2643,9 @@ class HomePage extends ViewPU {
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('新建合集');
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Medium);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2229,9 +2654,9 @@ class HomePage extends ViewPU {
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('创建');
-            Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontColor(this.newCollectionName.trim().length > 0 && this.newCollectionName.trim().length <= 10
-                ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                ? this.currentColors.primary : this.currentColors.textMuted);
             Text.onClick(() => this.createNewCollection());
         }, Text);
         Text.pop();
@@ -2248,11 +2673,11 @@ class HomePage extends ViewPU {
             // 合集名称输入框
             TextInput.height(48);
             // 合集名称输入框
-            TextInput.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 合集名称输入框
-            TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
             // 合集名称输入框
-            TextInput.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 合集名称输入框
             TextInput.padding({ left: 12, right: 12 });
             // 合集名称输入框
@@ -2261,7 +2686,7 @@ class HomePage extends ViewPU {
                 color: this.newCollectionName.length > 10 ? '#FF4D4F' : Color.Transparent
             });
             // 合集名称输入框
-            TextInput.fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : this.currentColors.textMain);
             // 合集名称输入框
             TextInput.onChange((value: string) => { this.newCollectionName = value; });
             // 合集名称输入框
@@ -2274,7 +2699,7 @@ class HomePage extends ViewPU {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('合集名称不能超过10个字');
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontColor('#FF4D4F');
                         Text.width('100%');
                         Text.margin({ top: 6 });
@@ -2313,8 +2738,8 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.padding(20);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius({ topLeft: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ topLeft: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 标题栏：已选定 n 条  添加到  [X]
@@ -2326,9 +2751,9 @@ class HomePage extends ViewPU {
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create(`已选定 ${this.selectedMomentIds.size} 条  添加到`);
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Medium);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2349,7 +2774,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         Button.pop();
         // 标题栏：已选定 n 条  添加到  [X]
@@ -2364,9 +2789,9 @@ class HomePage extends ViewPU {
             // 新建合集行（与合集列表样式一致，前面加 +）
             Row.padding({ left: 12, right: 12 });
             // 新建合集行（与合集列表样式一致，前面加 +）
-            Row.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.backgroundColor(this.currentColors.bgMain);
             // 新建合集行（与合集列表样式一致，前面加 +）
-            Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 新建合集行（与合集列表样式一致，前面加 +）
             Row.margin({ bottom: 8 });
             // 新建合集行（与合集列表样式一致，前面加 +）
@@ -2380,8 +2805,8 @@ class HomePage extends ViewPU {
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('＋新建合集');
-            Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         // 新建合集行（与合集列表样式一致，前面加 +）
@@ -2404,16 +2829,16 @@ class HomePage extends ViewPU {
                                 Row.width('100%');
                                 Row.height(44);
                                 Row.padding({ left: 12, right: 12 });
-                                Row.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Row.backgroundColor(this.currentColors.bgMain);
+                                Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                 Row.onClick(() => {
                                     this.addSelectedToCollection(collection);
                                 });
                             }, Row);
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
                                 Text.create(collection);
-                                Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontColor(this.currentColors.textMain);
                             }, Text);
                             Text.pop();
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2422,8 +2847,8 @@ class HomePage extends ViewPU {
                             Blank.pop();
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
                                 Text.create(`${this.moments.filter((m) => m.category === collection).length}条`);
-                                Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontColor(this.currentColors.textMuted);
                             }, Text);
                             Text.pop();
                             Row.pop();
@@ -2438,8 +2863,8 @@ class HomePage extends ViewPU {
                 this.ifElseBranchUpdateFunction(1, () => {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('暂无合集，点击上方按钮创建');
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
                         Text.width('100%');
                         Text.textAlign(TextAlign.Center);
                         Text.margin({ top: 8 });
@@ -2458,8 +2883,8 @@ class HomePage extends ViewPU {
             Row.create();
             Row.width('100%');
             Row.height(56);
-            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Row.borderRadius({ topLeft: { "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+            Row.backgroundColor(this.currentColors.bgCard);
+            Row.borderRadius({ topLeft: { "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
             Row.shadow({ radius: 8, color: '#15000000', offsetX: 0, offsetY: -2 });
             Row.zIndex(100);
         }, Row);
@@ -2489,12 +2914,12 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831897, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.primary]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777331, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777230, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.primary);
         }, Text);
         Text.pop();
         Column.pop();
@@ -2509,7 +2934,7 @@ class HomePage extends ViewPU {
             // 分隔线
             Divider.height(28);
             // 分隔线
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color(this.currentColors.border);
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
@@ -2537,12 +2962,12 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831542, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor(['#FF4D4F']);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777335, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777240, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor('#FF4D4F');
         }, Text);
         Text.pop();
         Column.pop();
@@ -2557,7 +2982,7 @@ class HomePage extends ViewPU {
             // 分隔线
             Divider.height(28);
             // 分隔线
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color(this.currentColors.border);
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
@@ -2592,12 +3017,12 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831700, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.primary]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777336, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777241, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.primary);
         }, Text);
         Text.pop();
         Column.pop();
@@ -2611,7 +3036,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
             Column.width(140);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgCard);
             Column.borderRadius(12);
             Column.shadow({ radius: 12, color: '#15000000', offsetX: 0, offsetY: 6 });
         }, Column);
@@ -2631,7 +3056,7 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width(8);
             Column.height(8);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgCard);
             Column.rotate({ angle: 45 });
             Column.margin({ top: -4, right: 14 });
         }, Column);
@@ -2665,12 +3090,12 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831897, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(15);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777338, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777245, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         // 合集选项
@@ -2678,7 +3103,7 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Divider.create();
             Divider.strokeWidth(0.5);
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color(this.currentColors.border);
             Divider.margin({ left: 14, right: 14 });
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -2708,12 +3133,12 @@ class HomePage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831935, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(15);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777339, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777246, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
         }, Text);
         Text.pop();
         // 手账本选项
@@ -2742,18 +3167,18 @@ class HomePage extends ViewPU {
             Column.create();
             Column.width('85%');
             Column.padding(24);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius({ "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 标题
-            Text.create({ "id": 16777334, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.create({ "id": 16777239, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 标题
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 标题
             Text.fontWeight(FontWeight.Medium);
             // 标题
-            Text.fontColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor('#FF4D4F');
             // 标题
             Text.margin({ bottom: 12 });
         }, Text);
@@ -2763,9 +3188,9 @@ class HomePage extends ViewPU {
             // 确认内容
             Text.create(`确定要删除选中的 ${this.pendingDeleteCount} 条记录吗？此操作不可恢复。`);
             // 确认内容
-            Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             // 确认内容
-            Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
             // 确认内容
             Text.textAlign(TextAlign.Center);
             // 确认内容
@@ -2782,12 +3207,12 @@ class HomePage extends ViewPU {
             Row.width('100%');
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Button.createWithLabel({ "id": 16777265, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.createWithLabel({ "id": 16777278, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Button.layoutWeight(1);
             Button.height(40);
-            Button.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Button.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Button.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.backgroundColor(this.currentColors.bgMain);
+            Button.fontColor(this.currentColors.textMain);
+            Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Button.onClick(() => {
                 Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
                     this.showDeleteConfirmDialog = false;
@@ -2797,12 +3222,12 @@ class HomePage extends ViewPU {
         }, Button);
         Button.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Button.createWithLabel({ "id": 16777271, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.createWithLabel({ "id": 16777284, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Button.layoutWeight(1);
             Button.height(40);
-            Button.backgroundColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.backgroundColor('#FF4D4F');
             Button.fontColor(Color.White);
-            Button.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Button.margin({ left: 12 });
             Button.onClick(() => {
                 Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
@@ -2820,6 +3245,270 @@ class HomePage extends ViewPU {
         }, Blank);
         Blank.pop();
         Column.pop();
+    }
+    // ==================== Todo 编辑工具栏（键盘上方） ====================
+    EditingToolbar(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.backgroundColor(this.currentColors.bgMain);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 时间选择器（展开时）
+            if (this.showRemindPicker) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.RemindTimePicker.bind(this)();
+                });
+            }
+            // 标签输入框（展开时）
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 标签输入框（展开时）
+            if (this.showTagInput) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.TagInputView.bind(this)();
+                });
+            }
+            // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+            Row.create();
+            // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+            Row.width('100%');
+            // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+            Row.padding({ left: 8, right: 8, top: 4, bottom: 4 });
+            // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+            Row.backgroundColor(this.currentColors.bgMain);
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 日历图标（提醒时间）
+            Button.createWithChild();
+            // 日历图标（提醒时间）
+            Button.width(44);
+            // 日历图标（提醒时间）
+            Button.height(44);
+            // 日历图标（提醒时间）
+            Button.backgroundColor(Color.Transparent);
+            // 日历图标（提醒时间）
+            Button.onClick(() => {
+                this.showRemindPicker = !this.showRemindPicker;
+                this.showTagInput = false;
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832312, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(22);
+            SymbolGlyph.fontColor([this.showRemindPicker ? this.currentColors.primary : this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        // 日历图标（提醒时间）
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 定位图标
+            Button.createWithChild();
+            // 定位图标
+            Button.width(44);
+            // 定位图标
+            Button.height(44);
+            // 定位图标
+            Button.backgroundColor(Color.Transparent);
+            // 定位图标
+            Button.onClick(() => {
+                this.setTodoLocation('此刻位置');
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('📍');
+            Text.fontSize(22);
+            Text.fontColor(this.getEditingTodo()?.location ? this.currentColors.primary : this.currentColors.textMuted);
+        }, Text);
+        Text.pop();
+        // 定位图标
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 标签图标 (#)
+            Button.createWithChild();
+            // 标签图标 (#)
+            Button.width(44);
+            // 标签图标 (#)
+            Button.height(44);
+            // 标签图标 (#)
+            Button.backgroundColor(Color.Transparent);
+            // 标签图标 (#)
+            Button.onClick(() => {
+                this.showTagInput = !this.showTagInput;
+                this.showRemindPicker = false;
+                if (this.showTagInput) {
+                    this.tagInputBuffer = this.getEditingTodo()?.tag || '';
+                }
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('#');
+            Text.fontSize(22);
+            Text.fontColor(this.getEditingTodo()?.tag ? this.currentColors.primary : this.currentColors.textMuted);
+        }, Text);
+        Text.pop();
+        // 标签图标 (#)
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 旗帜图标
+            Button.createWithChild();
+            // 旗帜图标
+            Button.width(44);
+            // 旗帜图标
+            Button.height(44);
+            // 旗帜图标
+            Button.backgroundColor(Color.Transparent);
+            // 旗帜图标
+            Button.onClick(() => {
+                this.toggleTodoFlagged();
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831594, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(22);
+            SymbolGlyph.fontColor([this.getEditingTodo()?.flagged ? this.currentColors.primary : this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        // 旗帜图标
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            // 相机图标
+            Button.createWithChild();
+            // 相机图标
+            Button.width(44);
+            // 相机图标
+            Button.height(44);
+            // 相机图标
+            Button.backgroundColor(Color.Transparent);
+            // 相机图标
+            Button.onClick(() => {
+                this.pickTodoImage();
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832421, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(22);
+            SymbolGlyph.fontColor([this.getEditingTodo()?.imageUris ? this.currentColors.primary : this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        // 相机图标
+        Button.pop();
+        // 工具栏图标行：日历 / 定位 / 标签 / 旗帜 / 相机
+        Row.pop();
+        Column.pop();
+    }
+    /**
+     * 标签输入框
+     */
+    TagInputView(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.padding({ left: 16, right: 8, top: 4, bottom: 4 });
+            Row.backgroundColor(this.currentColors.bgMain);
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ text: this.tagInputBuffer, placeholder: '输入标签...' });
+            TextInput.fontSize(14);
+            TextInput.fontColor(this.currentColors.textMain);
+            TextInput.backgroundColor(Color.Transparent);
+            TextInput.padding(0);
+            TextInput.layoutWeight(1);
+            TextInput.height(36);
+            TextInput.onChange((value: string) => {
+                this.tagInputBuffer = value;
+            });
+            TextInput.onSubmit(() => {
+                this.setTodoTag(this.tagInputBuffer.trim());
+            });
+        }, TextInput);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(36);
+            Button.height(36);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                this.setTodoTag(this.tagInputBuffer.trim());
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831490, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.primary]);
+        }, SymbolGlyph);
+        Button.pop();
+        Row.pop();
+    }
+    /**
+     * 提醒时间选择器
+     */
+    RemindTimePicker(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 8 });
+            Row.width('100%');
+            Row.padding({ left: 16, right: 16, top: 4, bottom: 8 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            ForEach.create();
+            const forEachItemGenFunction = _item => {
+                const time = _item;
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Button.createWithLabel(time);
+                    Button.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Button.fontColor(this.currentColors.textMain);
+                    Button.backgroundColor(this.currentColors.bgMain);
+                    Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Button.height(32);
+                    Button.padding({ left: 8, right: 8 });
+                    Button.onClick(() => {
+                        const parts = time.split(':');
+                        this.setRemindTime(parseInt(parts[0]), parseInt(parts[1]));
+                    });
+                }, Button);
+                Button.pop();
+            };
+            this.forEachUpdateFunction(elmtId, ['08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'], forEachItemGenFunction);
+        }, ForEach);
+        ForEach.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel({ "id": 16777305, "type": 10003, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontColor(this.currentColors.textMuted);
+            Button.backgroundColor(this.currentColors.bgMain);
+            Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.height(32);
+            Button.padding({ left: 8, right: 8 });
+            Button.onClick(() => {
+                const index = this.todos.findIndex(t => t.id === this.editingTodoId);
+                if (index > -1) {
+                    // 1. 直接获取原有的 todoitem 引用
+                    let currentItem = this.todos[index];
+                    // 2. 直接修改你需要的字段（无需管其他字段）
+                    currentItem.remindTime = 0;
+                    // 3. 用 splice 原地替换自己，这行代码的作用是专门用来“踹”一脚 ArkUI，让它刷新列表
+                    this.todos.splice(index, 1, currentItem);
+                }
+                this.showRemindPicker = false;
+            });
+        }, Button);
+        Button.pop();
+        Row.pop();
     }
     rerender() {
         this.updateDirtyElements();

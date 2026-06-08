@@ -211,7 +211,7 @@ class CategoryPage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.height('100%');
-            Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 标题栏
@@ -241,7 +241,7 @@ class CategoryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125832663, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([{ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
         }, SymbolGlyph);
         // 返回按钮
         Button.pop();
@@ -264,7 +264,7 @@ class CategoryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831650, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(18);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([{ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
         }, SymbolGlyph);
         // 列表按钮
         Button.pop();
@@ -275,16 +275,16 @@ class CategoryPage extends ViewPU {
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('合集');
-            Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Medium);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         // 标题栏
         Row.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Divider.create();
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color({ "id": 16777315, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
@@ -298,9 +298,9 @@ class CategoryPage extends ViewPU {
                     }, Row);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create(this.selectedCollection);
-                        Text.fontSize({ "id": 16777318, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777335, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Bold);
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -309,8 +309,8 @@ class CategoryPage extends ViewPU {
                     Blank.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create(`${this.posts.length}条记录`);
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     Row.pop();
@@ -360,8 +360,8 @@ class CategoryPage extends ViewPU {
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('该合集中还没有记录');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     Column.pop();
@@ -425,8 +425,8 @@ class CategoryPage extends ViewPU {
                         Column.width(180);
                         Column.height('calc(100% - 60px)');
                         Column.position({ x: 0, y: 60 });
-                        Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Column.borderRadius({ "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.borderRadius({ "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Column.zIndex(100);
                         Column.shadow({ radius: 16, color: '#20000000', offsetX: 4, offsetY: 0 });
                         Column.transition(TransitionEffect.translate({ x: '-100%' })
@@ -458,7 +458,7 @@ class CategoryPage extends ViewPU {
                                 Row.padding({ left: 16, right: 16 });
                                 Row.backgroundColor(this.selectedCollection === collection ?
                                     '#10FF6B35' : Color.Transparent);
-                                Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                 Row.onClick(() => {
                                     this.onCollectionSelected(collection);
                                     Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
@@ -468,8 +468,8 @@ class CategoryPage extends ViewPU {
                             }, Row);
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
                                 Text.create(collection);
-                                Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                                Text.fontColor(this.selectedCollection === collection ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Text.fontColor(this.selectedCollection === collection ? { "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                             }, Text);
                             Text.pop();
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -483,7 +483,7 @@ class CategoryPage extends ViewPU {
                                         this.observeComponentCreation2((elmtId, isInitialRender) => {
                                             Text.create('●');
                                             Text.fontSize(8);
-                                            Text.fontColor({ "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                            Text.fontColor({ "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                         }, Text);
                                         Text.pop();
                                     });
@@ -504,7 +504,7 @@ class CategoryPage extends ViewPU {
                     Scroll.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Divider.create();
-                        Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Divider.color({ "id": 16777315, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Divider.margin({ left: 16, right: 16, top: 8, bottom: 8 });
                     }, Divider);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -517,9 +517,9 @@ class CategoryPage extends ViewPU {
                         // 添加列表按钮
                         Row.padding({ left: 16, right: 16 });
                         // 添加列表按钮
-                        Row.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Row.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 添加列表按钮
-                        Row.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 添加列表按钮
                         Row.margin({ left: 12, right: 12, bottom: 16 });
                         // 添加列表按钮
@@ -533,8 +533,8 @@ class CategoryPage extends ViewPU {
                     }, Row);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('＋ 添加列表');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     // 添加列表按钮
@@ -576,8 +576,8 @@ class CategoryPage extends ViewPU {
                         Column.create();
                         Column.width('100%');
                         Column.padding(20);
-                        Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Column.borderRadius({ topLeft: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+                        Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.borderRadius({ topLeft: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
                     }, Column);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         // 标题栏
@@ -601,7 +601,7 @@ class CategoryPage extends ViewPU {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         SymbolGlyph.create({ "id": 125832663, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         SymbolGlyph.fontSize(18);
-                        SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+                        SymbolGlyph.fontColor([{ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
                     }, SymbolGlyph);
                     Button.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -610,9 +610,9 @@ class CategoryPage extends ViewPU {
                     Blank.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('新建合集');
-                        Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Medium);
-                        Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -621,9 +621,9 @@ class CategoryPage extends ViewPU {
                     Blank.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('创建');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontColor(this.newCollectionName.trim().length > 0 && this.newCollectionName.trim().length <= 10
-                            ? { "id": 16777300, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                            ? { "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.onClick(() => this.createNewCollection());
                     }, Text);
                     Text.pop();
@@ -640,11 +640,11 @@ class CategoryPage extends ViewPU {
                         // 合集名称输入框
                         TextInput.height(48);
                         // 合集名称输入框
-                        TextInput.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 合集名称输入框
-                        TextInput.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextInput.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 合集名称输入框
-                        TextInput.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 合集名称输入框
                         TextInput.padding({ left: 12, right: 12 });
                         // 合集名称输入框
@@ -653,7 +653,7 @@ class CategoryPage extends ViewPU {
                             color: this.newCollectionName.length > 10 ? '#FF4D4F' : Color.Transparent
                         });
                         // 合集名称输入框
-                        TextInput.fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        TextInput.fontColor(this.newCollectionName.length > 10 ? '#FF4D4F' : { "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         // 合集名称输入框
                         TextInput.onChange((value: string) => { this.newCollectionName = value; });
                         // 合集名称输入框
@@ -666,7 +666,7 @@ class CategoryPage extends ViewPU {
                             this.ifElseBranchUpdateFunction(0, () => {
                                 this.observeComponentCreation2((elmtId, isInitialRender) => {
                                     Text.create('合集名称不能超过10个字');
-                                    Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                                     Text.fontColor('#FF4D4F');
                                     Text.width('100%');
                                     Text.margin({ top: 6 });

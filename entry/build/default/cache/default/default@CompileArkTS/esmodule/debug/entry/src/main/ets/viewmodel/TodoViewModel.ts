@@ -35,7 +35,6 @@ export class TodoViewModel {
      */
     async addTodo(content: string, date: string, isCarryOver: boolean = false): Promise<number> {
         try {
-            // 获取当前最大order值
             const todos = await this.getTodosByDate(date);
             const maxOrder = todos.length > 0 ? Math.max(...todos.map((t: TodoItem) => t.order)) : -1;
             const todo: TodoInsertParams = {
@@ -44,7 +43,9 @@ export class TodoViewModel {
                 status: 'pending',
                 order: maxOrder + 1,
                 createdAt: Date.now(),
-                isCarryOver: isCarryOver
+                isCarryOver: isCarryOver,
+                remindTime: 0,
+                remark: ''
             };
             return await this.dbUtil.insertTodo(todo);
         }
@@ -107,8 +108,6 @@ export class TodoViewModel {
             const yesterdayTodos = await this.getTodosByDate(yesterday);
             const pendingTodos = yesterdayTodos.filter((t: TodoItem) => t.status === 'pending');
             if (pendingTodos.length > 0) {
-                // 获取今天的任务以确定起始order
-                const todayTodos = await this.getTodosByDate(today);
                 for (const todo of pendingTodos) {
                     await this.addTodo(todo.content, today, true);
                 }
@@ -137,11 +136,44 @@ export class TodoViewModel {
     async getTodayTodosForWidget(date: string): Promise<TodoItem[]> {
         try {
             const todos = await this.getTodosByDate(date);
-            return todos.filter((t: TodoItem) => t.status === 'pending').slice(0, 5); // 最多显示5条
+            return todos.filter((t: TodoItem) => t.status === 'pending').slice(0, 5);
         }
         catch (e) {
             console.error('获取今日任务失败:', JSON.stringify(e));
             return [];
+        }
+    }
+    /**
+     * 更新待办内容
+     */
+    async updateTodoContent(id: number, content: string): Promise<void> {
+        try {
+            await this.dbUtil.updateTodoContent(id, content);
+        }
+        catch (e) {
+            console.error('更新待办内容失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 更新待办提醒和备注
+     */
+    async updateTodoRemindAndRemark(id: number, remindTime: number, remark: string): Promise<void> {
+        try {
+            await this.dbUtil.updateTodoRemindAndRemark(id, remindTime, remark);
+        }
+        catch (e) {
+            console.error('更新待办提醒失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 更新待办扩展信息（位置、标签、旗帜、图片）
+     */
+    async updateTodoExtras(id: number, location: string, tag: string, flagged: boolean, imageUris: string): Promise<void> {
+        try {
+            await this.dbUtil.updateTodoExtras(id, location, tag, flagged, imageUris);
+        }
+        catch (e) {
+            console.error('更新待办扩展信息失败:', JSON.stringify(e));
         }
     }
 }

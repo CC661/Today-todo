@@ -126,7 +126,13 @@ export class RDBStoreUtil {
                 'status': todo.status,
                 'order_num': todo.order,
                 'created_at': todo.createdAt,
-                'is_carry_over': todo.isCarryOver ? 1 : 0
+                'is_carry_over': todo.isCarryOver ? 1 : 0,
+                'remind_time': todo.remindTime,
+                'remark': todo.remark,
+                'location': todo.location || '',
+                'tag': todo.tag || '',
+                'flagged': todo.flagged ? 1 : 0,
+                'image_uris': todo.imageUris || ''
             };
             return await this.rdbStore.insert(AppConstants.TABLE_TODOS, valuesBucket);
         }
@@ -156,6 +162,12 @@ export class RDBStoreUtil {
                 const orderVal = resultSet.getValue(resultSet.getColumnIndex('order_num'));
                 const createdAtVal = resultSet.getValue(resultSet.getColumnIndex('created_at'));
                 const isCarryOverVal = resultSet.getValue(resultSet.getColumnIndex('is_carry_over'));
+                const remindTimeVal = resultSet.getValue(resultSet.getColumnIndex('remind_time'));
+                const remarkVal = resultSet.getValue(resultSet.getColumnIndex('remark'));
+                const locationVal = resultSet.getValue(resultSet.getColumnIndex('location'));
+                const tagVal = resultSet.getValue(resultSet.getColumnIndex('tag'));
+                const flaggedVal = resultSet.getValue(resultSet.getColumnIndex('flagged'));
+                const imageUrisVal = resultSet.getValue(resultSet.getColumnIndex('image_uris'));
                 todos.push({
                     id: idVal as number,
                     content: contentVal as string,
@@ -163,7 +175,13 @@ export class RDBStoreUtil {
                     status: statusVal as 'pending' | 'completed',
                     order: orderVal as number,
                     createdAt: createdAtVal as number,
-                    isCarryOver: (isCarryOverVal as number) === 1
+                    isCarryOver: (isCarryOverVal as number) === 1,
+                    remindTime: remindTimeVal as number,
+                    remark: remarkVal as string,
+                    location: locationVal as string,
+                    tag: tagVal as string,
+                    flagged: (flaggedVal as number) === 1,
+                    imageUris: imageUrisVal as string
                 });
             }
             resultSet.close();
@@ -212,6 +230,70 @@ export class RDBStoreUtil {
         }
         catch (e) {
             console.error('更新待办排序失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 更新待办内容和属性
+     */
+    async updateTodoContent(id: number, content: string): Promise<void> {
+        if (!this.rdbStore) {
+            console.error('数据库未初始化');
+            return;
+        }
+        try {
+            const valuesBucket: relationalStore.ValuesBucket = {
+                'content': content
+            };
+            const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_TODOS);
+            predicates.equalTo('id', id);
+            await this.rdbStore.update(valuesBucket, predicates);
+        }
+        catch (e) {
+            console.error('更新待办内容失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 更新待办提醒时间和备注
+     */
+    async updateTodoRemindAndRemark(id: number, remindTime: number, remark: string): Promise<void> {
+        if (!this.rdbStore) {
+            console.error('数据库未初始化');
+            return;
+        }
+        try {
+            const valuesBucket: relationalStore.ValuesBucket = {
+                'remind_time': remindTime,
+                'remark': remark
+            };
+            const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_TODOS);
+            predicates.equalTo('id', id);
+            await this.rdbStore.update(valuesBucket, predicates);
+        }
+        catch (e) {
+            console.error('更新待办提醒失败:', JSON.stringify(e));
+        }
+    }
+    /**
+     * 更新待办位置、标签、旗帜、图片
+     */
+    async updateTodoExtras(id: number, location: string, tag: string, flagged: boolean, imageUris: string): Promise<void> {
+        if (!this.rdbStore) {
+            console.error('数据库未初始化');
+            return;
+        }
+        try {
+            const valuesBucket: relationalStore.ValuesBucket = {
+                'location': location,
+                'tag': tag,
+                'flagged': flagged ? 1 : 0,
+                'image_uris': imageUris
+            };
+            const predicates = new relationalStore.RdbPredicates(AppConstants.TABLE_TODOS);
+            predicates.equalTo('id', id);
+            await this.rdbStore.update(valuesBucket, predicates);
+        }
+        catch (e) {
+            console.error('更新待办扩展信息失败:', JSON.stringify(e));
         }
     }
     /**
@@ -732,6 +814,12 @@ export interface TodoInsertParams {
     order: number;
     createdAt: number;
     isCarryOver: boolean;
+    remindTime: number;
+    remark: string;
+    location?: string;
+    tag?: string;
+    flagged?: boolean;
+    imageUris?: string;
 }
 export interface DiaryPostInsertParams {
     content: string;

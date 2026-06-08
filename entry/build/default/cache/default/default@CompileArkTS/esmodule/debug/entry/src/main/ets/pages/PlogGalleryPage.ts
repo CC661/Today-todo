@@ -359,7 +359,7 @@ class PlogGalleryPage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.height('100%');
-            Column.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             // 标题栏
@@ -379,7 +379,7 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125832663, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(20);
-            SymbolGlyph.fontColor([{ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([{ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
         }, SymbolGlyph);
         Button.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -388,9 +388,9 @@ class PlogGalleryPage extends ViewPU {
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('手账');
-            Text.fontSize({ "id": 16777320, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777337, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Bold);
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         // 标题栏
@@ -424,14 +424,14 @@ class PlogGalleryPage extends ViewPU {
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('还没有手账作品');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('去创建你的第一本手账吧');
-                        Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777304, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777321, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.margin({ top: 4 });
                     }, Text);
                     Text.pop();
@@ -538,21 +538,21 @@ class PlogGalleryPage extends ViewPU {
                         Column.create();
                         Column.width('85%');
                         Column.padding(24);
-                        Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Column.borderRadius({ "id": 16777313, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.borderRadius({ "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     }, Column);
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('确定删除？');
-                        Text.fontSize({ "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontWeight(FontWeight.Medium);
-                        Text.fontColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777316, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.margin({ bottom: 12 });
                     }, Text);
                     Text.pop();
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         Text.create('此操作不可恢复，是否继续删除该手账？');
-                        Text.fontSize({ "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.textAlign(TextAlign.Center);
                         Text.margin({ bottom: 20 });
                     }, Text);
@@ -565,9 +565,9 @@ class PlogGalleryPage extends ViewPU {
                         Button.createWithLabel('取消');
                         Button.layoutWeight(1);
                         Button.height(40);
-                        Button.backgroundColor({ "id": 16777294, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Button.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-                        Button.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.onClick(() => {
                             Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
                                 this.showDeleteDialog = false;
@@ -580,9 +580,9 @@ class PlogGalleryPage extends ViewPU {
                         Button.createWithLabel('确定');
                         Button.layoutWeight(1);
                         Button.height(40);
-                        Button.backgroundColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.backgroundColor({ "id": 16777316, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.fontColor(Color.White);
-                        Button.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Button.margin({ left: 12 });
                         Button.onClick(() => this.confirmDelete());
                     }, Button);
@@ -609,8 +609,8 @@ class PlogGalleryPage extends ViewPU {
             Column.create();
             Column.width('100%');
             Column.height(180);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Column.borderRadius({ "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.borderRadius({ "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Column.onClick(() => this.navigateToPreview(plog.id));
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -623,8 +623,8 @@ class PlogGalleryPage extends ViewPU {
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create(plog.date);
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Text.fontWeight(FontWeight.Medium);
         }, Text);
         Text.pop();
@@ -645,7 +645,7 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('⋮');
             Text.fontSize(18);
-            Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         Button.pop();
@@ -842,7 +842,7 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
             Column.width(140);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Column.borderRadius(12);
             Column.shadow({ radius: 12, color: '#15000000', offsetX: 0, offsetY: 6 });
             Column.position({
@@ -866,7 +866,7 @@ class PlogGalleryPage extends ViewPU {
             Column.create();
             Column.width(8);
             Column.height(8);
-            Column.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Column.backgroundColor({ "id": 16777314, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Column.rotate({ angle: 45 });
             Column.margin({ top: -4 });
         }, Column);
@@ -901,12 +901,12 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831624, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(15);
-            SymbolGlyph.fontColor([{ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([{ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('编辑');
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         // 编辑选项
@@ -914,7 +914,7 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Divider.create();
             Divider.strokeWidth(0.5);
-            Divider.color({ "id": 16777298, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Divider.color({ "id": 16777315, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Divider.margin({ left: 14, right: 14 });
         }, Divider);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -945,12 +945,12 @@ class PlogGalleryPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             SymbolGlyph.create({ "id": 125831542, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             SymbolGlyph.fontSize(15);
-            SymbolGlyph.fontColor([{ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
+            SymbolGlyph.fontColor([{ "id": 16777316, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }]);
         }, SymbolGlyph);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Text.create('删除');
-            Text.fontSize({ "id": 16777317, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Text.fontColor({ "id": 16777299, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor({ "id": 16777316, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
         }, Text);
         Text.pop();
         // 删除选项

@@ -5,8 +5,10 @@ interface WeekCalendarComponent_Params {
     currentWeek?: string[];
     selectedDate?: string;
     onDateSelected?: (date: string) => void;
+    colors?: ThemeColors;
 }
 import DateUtils from "@normalized:N&&&entry/src/main/ets/common/utils/DateUtils&";
+import type { ThemeColors } from '../../common/theme/ThemeManager';
 export default class WeekCalendarComponent extends ViewPU {
     constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
         super(parent, __localStorage, elmtId, extraInfo);
@@ -16,6 +18,7 @@ export default class WeekCalendarComponent extends ViewPU {
         this.__currentWeek = new SynchedPropertyObjectOneWayPU(params.currentWeek, this, "currentWeek");
         this.__selectedDate = new SynchedPropertySimpleOneWayPU(params.selectedDate, this, "selectedDate");
         this.onDateSelected = undefined;
+        this.__colors = new SynchedPropertyObjectOneWayPU(params.colors, this, "colors");
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
@@ -27,14 +30,17 @@ export default class WeekCalendarComponent extends ViewPU {
     updateStateVars(params: WeekCalendarComponent_Params) {
         this.__currentWeek.reset(params.currentWeek);
         this.__selectedDate.reset(params.selectedDate);
+        this.__colors.reset(params.colors);
     }
     purgeVariableDependenciesOnElmtId(rmElmtId) {
         this.__currentWeek.purgeDependencyOnElmtId(rmElmtId);
         this.__selectedDate.purgeDependencyOnElmtId(rmElmtId);
+        this.__colors.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
         this.__currentWeek.aboutToBeDeleted();
         this.__selectedDate.aboutToBeDeleted();
+        this.__colors.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
     }
@@ -53,18 +59,26 @@ export default class WeekCalendarComponent extends ViewPU {
         this.__selectedDate.set(newValue);
     }
     private onDateSelected?: (date: string) => void;
+    // 🛠️ 修复核心：声明 colors 变量，接收父组件传递的主题配色方案
+    private __colors: SynchedPropertySimpleOneWayPU<ThemeColors>;
+    get colors() {
+        return this.__colors.get();
+    }
+    set colors(newValue: ThemeColors) {
+        this.__colors.set(newValue);
+    }
     initialRender() {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Row.create();
             Row.width('100%');
             Row.padding({ left: 16, right: 16, top: 8, bottom: 8 });
-            Row.backgroundColor({ "id": 16777297, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
-            Row.borderRadius({ "id": 16777310, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.backgroundColor(this.colors.bgCard);
+            Row.borderRadius({ "id": 16777327, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
             Row.shadow({
-                radius: 8,
-                color: '#10000000',
+                radius: 12,
+                color: '#0d000000',
                 offsetX: 0,
-                offsetY: 2
+                offsetY: 4
             });
         }, Row);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -76,8 +90,8 @@ export default class WeekCalendarComponent extends ViewPU {
                     Column.layoutWeight(1);
                     Column.height(60);
                     Column.justifyContent(FlexAlign.Center);
-                    Column.backgroundColor(this.selectedDate === date ? { "id": 16777295, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : Color.Transparent);
-                    Column.borderRadius({ "id": 16777311, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Column.backgroundColor(this.selectedDate === date ? this.colors.primary : Color.Transparent);
+                    Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     Column.onClick(() => {
                         if (this.onDateSelected) {
                             this.onDateSelected(date);
@@ -88,9 +102,9 @@ export default class WeekCalendarComponent extends ViewPU {
                     // 星期几
                     Text.create(DateUtils.getChineseWeekday(date).substring(1));
                     // 星期几
-                    Text.fontSize({ "id": 16777319, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Text.fontSize({ "id": 16777336, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     // 星期几
-                    Text.fontColor({ "id": 16777306, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Text.fontColor(this.selectedDate === date ? Color.White : this.colors.textMuted);
                     // 星期几
                     Text.margin({ bottom: 4 });
                 }, Text);
@@ -100,9 +114,9 @@ export default class WeekCalendarComponent extends ViewPU {
                     // 日期数字
                     Text.create(date.split('-')[2]);
                     // 日期数字
-                    Text.fontSize(this.selectedDate === date ? { "id": 16777315, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777314, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Text.fontSize(this.selectedDate === date ? { "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } : { "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                     // 日期数字
-                    Text.fontColor(this.selectedDate === date ? Color.White : { "id": 16777305, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    Text.fontColor(this.selectedDate === date ? Color.White : this.colors.textMain);
                     // 日期数字
                     Text.fontWeight(this.selectedDate === date ? FontWeight.Bold : FontWeight.Normal);
                 }, Text);
@@ -110,14 +124,14 @@ export default class WeekCalendarComponent extends ViewPU {
                 Text.pop();
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
                     If.create();
-                    // 今天标记
-                    if (DateUtils.isToday(date)) {
+                    // 今天标记（小圆点）
+                    if (DateUtils.isToday(date) && this.selectedDate !== date) {
                         this.ifElseBranchUpdateFunction(0, () => {
                             this.observeComponentCreation2((elmtId, isInitialRender) => {
                                 Circle.create();
                                 Circle.width(4);
                                 Circle.height(4);
-                                Circle.fill({ "id": 16777296, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                Circle.fill(this.colors.primary);
                                 Circle.margin({ top: 4 });
                             }, Circle);
                         });

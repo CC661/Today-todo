@@ -5,6 +5,7 @@ import RDBStoreUtil from '../common/database/RDBStoreUtil';
 import PreferencesUtil from '../common/database/PreferencesUtil';
 import DateUtils from '../common/utils/DateUtils';
 import TodoViewModel from '../viewmodel/TodoViewModel';
+import ThemeManager from '../common/theme/ThemeManager';
 
 const DOMAIN = 0x0000;
 const TAG = 'EntryAbility';
@@ -23,6 +24,9 @@ export default class EntryAbility extends UIAbility {
 
       // 初始化Preferences
       await PreferencesUtil.init(this.context);
+
+      // 初始化主题管理器（从 Preferences 加载持久化的主题设置）
+      await ThemeManager.init();
 
       // 检查昨日任务结转
       const lastDate = await PreferencesUtil.getLastOpenDate();

@@ -1,13 +1,23 @@
 import DateUtils from '../../common/utils/DateUtils';
+import type { ThemeColors } from '../../common/theme/ThemeManager';
 
 /**
  * 月历视图组件
+ * 完全跟随全局主题配色（通过 colors prop 传入）
  */
 @Component
 export default struct MonthCalendarComponent {
   @Prop calendar: (string | null)[][];
   @Prop selectedDate: string;
   @Prop eventDates: Set<string>; // 有事件的日期集合
+  @Prop colors: ThemeColors = {
+    primary: '#ffac34',
+    bgMain: '#fdfaf2',
+    bgCard: '#ffffff',
+    textMain: '#3e2723',
+    textMuted: '#ffcd84',
+    border: '#f6f0e2'
+  };
   onDateSelected?: (date: string) => void;
 
   build() {
@@ -17,7 +27,7 @@ export default struct MonthCalendarComponent {
         ForEach(['日', '一', '二', '三', '四', '五', '六'], (day: string) => {
           Text(day)
             .fontSize($r('app.float.font_size_xs'))
-            .fontColor($r('app.color.text_secondary'))
+            .fontColor(this.colors.textMuted)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
         })
@@ -40,8 +50,8 @@ export default struct MonthCalendarComponent {
                   .fontSize(this.selectedDate === date ? $r('app.float.font_size_md') : $r('app.float.font_size_sm'))
                   .fontColor(
                     this.selectedDate === date ? Color.White :
-                    DateUtils.isToday(date) ? $r('app.color.calendar_today') :
-                    $r('app.color.text_primary')
+                    DateUtils.isToday(date) ? this.colors.primary :
+                    this.colors.textMain
                   )
                   .fontWeight(this.selectedDate === date ? FontWeight.Bold : FontWeight.Normal)
 
@@ -50,14 +60,14 @@ export default struct MonthCalendarComponent {
                   Circle()
                     .width(4)
                     .height(4)
-                    .fill($r('app.color.primary_color'))
+                    .fill(this.colors.primary)
                     .margin({ top: 2 })
                 }
               }
               .layoutWeight(1)
               .height(40)
               .justifyContent(FlexAlign.Center)
-              .backgroundColor(this.selectedDate === date ? $r('app.color.calendar_selected') : Color.Transparent)
+              .backgroundColor(this.selectedDate === date ? this.colors.primary : Color.Transparent)
               .borderRadius($r('app.float.border_radius_sm'))
               .onClick(() => {
                 if (this.onDateSelected) {
@@ -73,13 +83,13 @@ export default struct MonthCalendarComponent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor(this.colors.bgCard)
     .borderRadius($r('app.float.border_radius_lg'))
     .shadow({
-      radius: 8,
-      color: '#10000000',
+      radius: 12,
+      color: '#0d000000',
       offsetX: 0,
-      offsetY: 2
+      offsetY: 4
     })
   }
 }
