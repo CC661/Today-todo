@@ -39,6 +39,26 @@ interface HomePage_Params {
     searchKeyword?: string;
     showDeleteConfirmDialog?: boolean;
     pendingDeleteCount?: number;
+    showTemplateChoiceDialog?: boolean;
+    showTemplateListDropdown?: boolean;
+    showTemplateAccountingDialog?: boolean;
+    showTemplateDiningDialog?: boolean;
+    showTemplateMovieDialog?: boolean;
+    tplAccDate?: string;
+    tplAccLocation?: string;
+    tplAccAmount?: string;
+    tplAccItem?: string;
+    tplDinDate?: string;
+    tplDinLocation?: string;
+    tplDinAmount?: string;
+    tplDinDish?: string;
+    tplDinRating?: string;
+    tplDinMediaUris?: string[];
+    tplMovTitle?: string;
+    tplMovGenre?: string;
+    tplMovScore?: string;
+    tplMovExperience?: string;
+    tplMovMediaUris?: string[];
     plogs?: PlogCanvas[];
     plogsLoading?: boolean;
 }
@@ -60,6 +80,8 @@ import photoAccessHelper from "@ohos:file.photoAccessHelper";
 import promptAction from "@ohos:promptAction";
 import PreferencesUtil from "@normalized:N&&&entry/src/main/ets/common/database/PreferencesUtil&";
 import type { ThemeColors } from '../common/theme/ThemeManager';
+import type { TemplateType, AccountingData, DiningData, MovieData } from "@normalized:N&&&entry/src/main/ets/model/TemplateData&";
+import { templateTypeToCollection, TEMPLATE_COLLECTION_ACCOUNTING, TEMPLATE_COLLECTION_DINING, TEMPLATE_COLLECTION_MOVIE } from "@normalized:N&&&entry/src/main/ets/model/TemplateData&";
 class HomePage extends ViewPU {
     constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
         super(parent, __localStorage, elmtId, extraInfo);
@@ -110,6 +132,26 @@ class HomePage extends ViewPU {
         this.__searchKeyword = new ObservedPropertySimplePU('', this, "searchKeyword");
         this.__showDeleteConfirmDialog = new ObservedPropertySimplePU(false, this, "showDeleteConfirmDialog");
         this.__pendingDeleteCount = new ObservedPropertySimplePU(0, this, "pendingDeleteCount");
+        this.__showTemplateChoiceDialog = new ObservedPropertySimplePU(false, this, "showTemplateChoiceDialog");
+        this.__showTemplateListDropdown = new ObservedPropertySimplePU(false, this, "showTemplateListDropdown");
+        this.__showTemplateAccountingDialog = new ObservedPropertySimplePU(false, this, "showTemplateAccountingDialog");
+        this.__showTemplateDiningDialog = new ObservedPropertySimplePU(false, this, "showTemplateDiningDialog");
+        this.__showTemplateMovieDialog = new ObservedPropertySimplePU(false, this, "showTemplateMovieDialog");
+        this.__tplAccDate = new ObservedPropertySimplePU('', this, "tplAccDate");
+        this.__tplAccLocation = new ObservedPropertySimplePU('', this, "tplAccLocation");
+        this.__tplAccAmount = new ObservedPropertySimplePU('', this, "tplAccAmount");
+        this.__tplAccItem = new ObservedPropertySimplePU('', this, "tplAccItem");
+        this.__tplDinDate = new ObservedPropertySimplePU('', this, "tplDinDate");
+        this.__tplDinLocation = new ObservedPropertySimplePU('', this, "tplDinLocation");
+        this.__tplDinAmount = new ObservedPropertySimplePU('', this, "tplDinAmount");
+        this.__tplDinDish = new ObservedPropertySimplePU('', this, "tplDinDish");
+        this.__tplDinRating = new ObservedPropertySimplePU('', this, "tplDinRating");
+        this.__tplDinMediaUris = new ObservedPropertyObjectPU([], this, "tplDinMediaUris");
+        this.__tplMovTitle = new ObservedPropertySimplePU('', this, "tplMovTitle");
+        this.__tplMovGenre = new ObservedPropertySimplePU('', this, "tplMovGenre");
+        this.__tplMovScore = new ObservedPropertySimplePU('', this, "tplMovScore");
+        this.__tplMovExperience = new ObservedPropertySimplePU('', this, "tplMovExperience");
+        this.__tplMovMediaUris = new ObservedPropertyObjectPU([], this, "tplMovMediaUris");
         this.__plogs = new ObservedPropertyObjectPU([], this, "plogs");
         this.__plogsLoading = new ObservedPropertySimplePU(false, this, "plogsLoading");
         this.setInitiallyProvidedValue(params);
@@ -224,6 +266,66 @@ class HomePage extends ViewPU {
         if (params.pendingDeleteCount !== undefined) {
             this.pendingDeleteCount = params.pendingDeleteCount;
         }
+        if (params.showTemplateChoiceDialog !== undefined) {
+            this.showTemplateChoiceDialog = params.showTemplateChoiceDialog;
+        }
+        if (params.showTemplateListDropdown !== undefined) {
+            this.showTemplateListDropdown = params.showTemplateListDropdown;
+        }
+        if (params.showTemplateAccountingDialog !== undefined) {
+            this.showTemplateAccountingDialog = params.showTemplateAccountingDialog;
+        }
+        if (params.showTemplateDiningDialog !== undefined) {
+            this.showTemplateDiningDialog = params.showTemplateDiningDialog;
+        }
+        if (params.showTemplateMovieDialog !== undefined) {
+            this.showTemplateMovieDialog = params.showTemplateMovieDialog;
+        }
+        if (params.tplAccDate !== undefined) {
+            this.tplAccDate = params.tplAccDate;
+        }
+        if (params.tplAccLocation !== undefined) {
+            this.tplAccLocation = params.tplAccLocation;
+        }
+        if (params.tplAccAmount !== undefined) {
+            this.tplAccAmount = params.tplAccAmount;
+        }
+        if (params.tplAccItem !== undefined) {
+            this.tplAccItem = params.tplAccItem;
+        }
+        if (params.tplDinDate !== undefined) {
+            this.tplDinDate = params.tplDinDate;
+        }
+        if (params.tplDinLocation !== undefined) {
+            this.tplDinLocation = params.tplDinLocation;
+        }
+        if (params.tplDinAmount !== undefined) {
+            this.tplDinAmount = params.tplDinAmount;
+        }
+        if (params.tplDinDish !== undefined) {
+            this.tplDinDish = params.tplDinDish;
+        }
+        if (params.tplDinRating !== undefined) {
+            this.tplDinRating = params.tplDinRating;
+        }
+        if (params.tplDinMediaUris !== undefined) {
+            this.tplDinMediaUris = params.tplDinMediaUris;
+        }
+        if (params.tplMovTitle !== undefined) {
+            this.tplMovTitle = params.tplMovTitle;
+        }
+        if (params.tplMovGenre !== undefined) {
+            this.tplMovGenre = params.tplMovGenre;
+        }
+        if (params.tplMovScore !== undefined) {
+            this.tplMovScore = params.tplMovScore;
+        }
+        if (params.tplMovExperience !== undefined) {
+            this.tplMovExperience = params.tplMovExperience;
+        }
+        if (params.tplMovMediaUris !== undefined) {
+            this.tplMovMediaUris = params.tplMovMediaUris;
+        }
         if (params.plogs !== undefined) {
             this.plogs = params.plogs;
         }
@@ -268,6 +370,26 @@ class HomePage extends ViewPU {
         this.__searchKeyword.purgeDependencyOnElmtId(rmElmtId);
         this.__showDeleteConfirmDialog.purgeDependencyOnElmtId(rmElmtId);
         this.__pendingDeleteCount.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTemplateChoiceDialog.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTemplateListDropdown.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTemplateAccountingDialog.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTemplateDiningDialog.purgeDependencyOnElmtId(rmElmtId);
+        this.__showTemplateMovieDialog.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplAccDate.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplAccLocation.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplAccAmount.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplAccItem.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinDate.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinLocation.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinAmount.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinDish.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinRating.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplDinMediaUris.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplMovTitle.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplMovGenre.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplMovScore.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplMovExperience.purgeDependencyOnElmtId(rmElmtId);
+        this.__tplMovMediaUris.purgeDependencyOnElmtId(rmElmtId);
         this.__plogs.purgeDependencyOnElmtId(rmElmtId);
         this.__plogsLoading.purgeDependencyOnElmtId(rmElmtId);
     }
@@ -306,6 +428,26 @@ class HomePage extends ViewPU {
         this.__searchKeyword.aboutToBeDeleted();
         this.__showDeleteConfirmDialog.aboutToBeDeleted();
         this.__pendingDeleteCount.aboutToBeDeleted();
+        this.__showTemplateChoiceDialog.aboutToBeDeleted();
+        this.__showTemplateListDropdown.aboutToBeDeleted();
+        this.__showTemplateAccountingDialog.aboutToBeDeleted();
+        this.__showTemplateDiningDialog.aboutToBeDeleted();
+        this.__showTemplateMovieDialog.aboutToBeDeleted();
+        this.__tplAccDate.aboutToBeDeleted();
+        this.__tplAccLocation.aboutToBeDeleted();
+        this.__tplAccAmount.aboutToBeDeleted();
+        this.__tplAccItem.aboutToBeDeleted();
+        this.__tplDinDate.aboutToBeDeleted();
+        this.__tplDinLocation.aboutToBeDeleted();
+        this.__tplDinAmount.aboutToBeDeleted();
+        this.__tplDinDish.aboutToBeDeleted();
+        this.__tplDinRating.aboutToBeDeleted();
+        this.__tplDinMediaUris.aboutToBeDeleted();
+        this.__tplMovTitle.aboutToBeDeleted();
+        this.__tplMovGenre.aboutToBeDeleted();
+        this.__tplMovScore.aboutToBeDeleted();
+        this.__tplMovExperience.aboutToBeDeleted();
+        this.__tplMovMediaUris.aboutToBeDeleted();
         this.__plogs.aboutToBeDeleted();
         this.__plogsLoading.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
@@ -560,6 +702,150 @@ class HomePage extends ViewPU {
     }
     set pendingDeleteCount(newValue: number) {
         this.__pendingDeleteCount.set(newValue);
+    }
+    // ---- 模板发布状态 ----
+    private __showTemplateChoiceDialog: ObservedPropertySimplePU<boolean>;
+    get showTemplateChoiceDialog() {
+        return this.__showTemplateChoiceDialog.get();
+    }
+    set showTemplateChoiceDialog(newValue: boolean) {
+        this.__showTemplateChoiceDialog.set(newValue);
+    }
+    private __showTemplateListDropdown: ObservedPropertySimplePU<boolean>;
+    get showTemplateListDropdown() {
+        return this.__showTemplateListDropdown.get();
+    }
+    set showTemplateListDropdown(newValue: boolean) {
+        this.__showTemplateListDropdown.set(newValue);
+    }
+    private __showTemplateAccountingDialog: ObservedPropertySimplePU<boolean>;
+    get showTemplateAccountingDialog() {
+        return this.__showTemplateAccountingDialog.get();
+    }
+    set showTemplateAccountingDialog(newValue: boolean) {
+        this.__showTemplateAccountingDialog.set(newValue);
+    }
+    private __showTemplateDiningDialog: ObservedPropertySimplePU<boolean>;
+    get showTemplateDiningDialog() {
+        return this.__showTemplateDiningDialog.get();
+    }
+    set showTemplateDiningDialog(newValue: boolean) {
+        this.__showTemplateDiningDialog.set(newValue);
+    }
+    private __showTemplateMovieDialog: ObservedPropertySimplePU<boolean>;
+    get showTemplateMovieDialog() {
+        return this.__showTemplateMovieDialog.get();
+    }
+    set showTemplateMovieDialog(newValue: boolean) {
+        this.__showTemplateMovieDialog.set(newValue);
+    }
+    // 记账模板字段
+    private __tplAccDate: ObservedPropertySimplePU<string>;
+    get tplAccDate() {
+        return this.__tplAccDate.get();
+    }
+    set tplAccDate(newValue: string) {
+        this.__tplAccDate.set(newValue);
+    }
+    private __tplAccLocation: ObservedPropertySimplePU<string>;
+    get tplAccLocation() {
+        return this.__tplAccLocation.get();
+    }
+    set tplAccLocation(newValue: string) {
+        this.__tplAccLocation.set(newValue);
+    }
+    private __tplAccAmount: ObservedPropertySimplePU<string>;
+    get tplAccAmount() {
+        return this.__tplAccAmount.get();
+    }
+    set tplAccAmount(newValue: string) {
+        this.__tplAccAmount.set(newValue);
+    }
+    private __tplAccItem: ObservedPropertySimplePU<string>;
+    get tplAccItem() {
+        return this.__tplAccItem.get();
+    }
+    set tplAccItem(newValue: string) {
+        this.__tplAccItem.set(newValue);
+    }
+    // 饮食模板字段
+    private __tplDinDate: ObservedPropertySimplePU<string>;
+    get tplDinDate() {
+        return this.__tplDinDate.get();
+    }
+    set tplDinDate(newValue: string) {
+        this.__tplDinDate.set(newValue);
+    }
+    private __tplDinLocation: ObservedPropertySimplePU<string>;
+    get tplDinLocation() {
+        return this.__tplDinLocation.get();
+    }
+    set tplDinLocation(newValue: string) {
+        this.__tplDinLocation.set(newValue);
+    }
+    private __tplDinAmount: ObservedPropertySimplePU<string>;
+    get tplDinAmount() {
+        return this.__tplDinAmount.get();
+    }
+    set tplDinAmount(newValue: string) {
+        this.__tplDinAmount.set(newValue);
+    }
+    private __tplDinDish: ObservedPropertySimplePU<string>;
+    get tplDinDish() {
+        return this.__tplDinDish.get();
+    }
+    set tplDinDish(newValue: string) {
+        this.__tplDinDish.set(newValue);
+    }
+    private __tplDinRating: ObservedPropertySimplePU<string>;
+    get tplDinRating() {
+        return this.__tplDinRating.get();
+    }
+    set tplDinRating(newValue: string) {
+        this.__tplDinRating.set(newValue);
+    }
+    private __tplDinMediaUris: ObservedPropertyObjectPU<string[]>;
+    get tplDinMediaUris() {
+        return this.__tplDinMediaUris.get();
+    }
+    set tplDinMediaUris(newValue: string[]) {
+        this.__tplDinMediaUris.set(newValue);
+    }
+    // 观影模板字段
+    private __tplMovTitle: ObservedPropertySimplePU<string>;
+    get tplMovTitle() {
+        return this.__tplMovTitle.get();
+    }
+    set tplMovTitle(newValue: string) {
+        this.__tplMovTitle.set(newValue);
+    }
+    private __tplMovGenre: ObservedPropertySimplePU<string>;
+    get tplMovGenre() {
+        return this.__tplMovGenre.get();
+    }
+    set tplMovGenre(newValue: string) {
+        this.__tplMovGenre.set(newValue);
+    }
+    private __tplMovScore: ObservedPropertySimplePU<string>;
+    get tplMovScore() {
+        return this.__tplMovScore.get();
+    }
+    set tplMovScore(newValue: string) {
+        this.__tplMovScore.set(newValue);
+    }
+    private __tplMovExperience: ObservedPropertySimplePU<string>;
+    get tplMovExperience() {
+        return this.__tplMovExperience.get();
+    }
+    set tplMovExperience(newValue: string) {
+        this.__tplMovExperience.set(newValue);
+    }
+    private __tplMovMediaUris: ObservedPropertyObjectPU<string[]>;
+    get tplMovMediaUris() {
+        return this.__tplMovMediaUris.get();
+    }
+    set tplMovMediaUris(newValue: string[]) {
+        this.__tplMovMediaUris.set(newValue);
     }
     // ---- Plog 状态 ----
     private __plogs: ObservedPropertyObjectPU<PlogCanvas[]>;
@@ -900,7 +1186,7 @@ class HomePage extends ViewPU {
         try {
             const result = await DiaryViewModel.getAllPosts();
             // 💡 核心改动：使用 sort() 按照时间戳升序排序（正序：最早发布的在最上面）
-            this.moments = result.sort((a, b) => a.timestamp - b.timestamp);
+            this.moments = result.sort((a, b) => b.timestamp - a.timestamp);
         }
         catch (error) {
             console.error('加载随手记失败:', error);
@@ -958,6 +1244,179 @@ class HomePage extends ViewPU {
     }
     removeMedia(index: number): void {
         this.newPostMediaUris.splice(index, 1);
+    }
+    // ---- 模板发布相关方法 ----
+    async ensureTemplateCollection(templateType: TemplateType): Promise<void> {
+        const collectionName = templateTypeToCollection(templateType);
+        if (!this.collections.includes(collectionName)) {
+            this.collections.push(collectionName);
+            await PreferencesUtil.saveCollections(this.collections);
+        }
+    }
+    async publishAccountingTemplate(): Promise<void> {
+        if (!this.tplAccDate || !this.tplAccAmount || !this.tplAccItem) {
+            promptAction.showToast({ message: '请填写必填项' });
+            return;
+        }
+        try {
+            const templateData: AccountingData = {
+                type: 'accounting',
+                date: this.tplAccDate,
+                location: this.tplAccLocation,
+                amount: this.tplAccAmount,
+                item: this.tplAccItem
+            };
+            const post: DiaryPostInsertParams = {
+                content: `【记账】${this.tplAccItem} ￥${this.tplAccAmount}`,
+                mediaUrls: [],
+                location: this.tplAccLocation,
+                weather: '',
+                timestamp: Date.now(),
+                date: DateUtils.getToday(),
+                category: TEMPLATE_COLLECTION_ACCOUNTING,
+                templateData: JSON.stringify(templateData)
+            };
+            await DiaryViewModel.createPost(post);
+            await this.ensureTemplateCollection('accounting');
+            this.resetAccountingFields();
+            this.showTemplateAccountingDialog = false;
+            await this.loadMoments();
+            await this.loadCollections();
+            promptAction.showToast({ message: '记账成功' });
+        }
+        catch (error) {
+            console.error('发布记账失败:', error);
+        }
+    }
+    async publishDiningTemplate(): Promise<void> {
+        if (!this.tplDinDate || !this.tplDinDish) {
+            promptAction.showToast({ message: '请填写必填项' });
+            return;
+        }
+        try {
+            const templateData: DiningData = {
+                type: 'dining',
+                date: this.tplDinDate,
+                location: this.tplDinLocation,
+                amount: this.tplDinAmount,
+                dish: this.tplDinDish,
+                rating: this.tplDinRating
+            };
+            const post: DiaryPostInsertParams = {
+                content: `【饮食】${this.tplDinDish}`,
+                mediaUrls: this.tplDinMediaUris,
+                location: this.tplDinLocation,
+                weather: '',
+                timestamp: Date.now(),
+                date: DateUtils.getToday(),
+                category: TEMPLATE_COLLECTION_DINING,
+                templateData: JSON.stringify(templateData)
+            };
+            await DiaryViewModel.createPost(post);
+            await this.ensureTemplateCollection('dining');
+            this.resetDiningFields();
+            this.showTemplateDiningDialog = false;
+            await this.loadMoments();
+            await this.loadCollections();
+            promptAction.showToast({ message: '记录成功' });
+        }
+        catch (error) {
+            console.error('发布饮食失败:', error);
+        }
+    }
+    async publishMovieTemplate(): Promise<void> {
+        if (!this.tplMovTitle) {
+            promptAction.showToast({ message: '请填写影片名称' });
+            return;
+        }
+        try {
+            const templateData: MovieData = {
+                type: 'movie',
+                title: this.tplMovTitle,
+                genre: this.tplMovGenre,
+                score: this.tplMovScore,
+                experience: this.tplMovExperience
+            };
+            const post: DiaryPostInsertParams = {
+                content: `【观影】${this.tplMovTitle}`,
+                mediaUrls: this.tplMovMediaUris,
+                location: '',
+                weather: '',
+                timestamp: Date.now(),
+                date: DateUtils.getToday(),
+                category: TEMPLATE_COLLECTION_MOVIE,
+                templateData: JSON.stringify(templateData)
+            };
+            await DiaryViewModel.createPost(post);
+            await this.ensureTemplateCollection('movie');
+            this.resetMovieFields();
+            this.showTemplateMovieDialog = false;
+            await this.loadMoments();
+            await this.loadCollections();
+            promptAction.showToast({ message: '观影记录成功' });
+        }
+        catch (error) {
+            console.error('发布观影失败:', error);
+        }
+    }
+    resetAccountingFields(): void {
+        this.tplAccDate = '';
+        this.tplAccLocation = '';
+        this.tplAccAmount = '';
+        this.tplAccItem = '';
+    }
+    resetDiningFields(): void {
+        this.tplDinDate = '';
+        this.tplDinLocation = '';
+        this.tplDinAmount = '';
+        this.tplDinDish = '';
+        this.tplDinRating = '';
+        this.tplDinMediaUris = [];
+    }
+    resetMovieFields(): void {
+        this.tplMovTitle = '';
+        this.tplMovGenre = '';
+        this.tplMovScore = '';
+        this.tplMovExperience = '';
+        this.tplMovMediaUris = [];
+    }
+    async pickDiningMedia(): Promise<void> {
+        try {
+            const photoPicker = photoAccessHelper.getPhotoAccessHelper(getContext(this));
+            const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+            photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+            photoSelectOptions.maxSelectNumber = 9 - this.tplDinMediaUris.length;
+            const photoViewPicker = new photoAccessHelper.PhotoViewPicker();
+            const result = await photoViewPicker.select(photoSelectOptions);
+            if (result && result.photoUris && result.photoUris.length > 0) {
+                this.tplDinMediaUris = this.tplDinMediaUris.concat(result.photoUris);
+            }
+        }
+        catch (error) {
+            console.error('选择饮食图片失败:', error);
+        }
+    }
+    removeDiningMedia(index: number): void {
+        this.tplDinMediaUris.splice(index, 1);
+    }
+    async pickMovieMedia(): Promise<void> {
+        try {
+            const photoPicker = photoAccessHelper.getPhotoAccessHelper(getContext(this));
+            const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+            photoSelectOptions.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+            photoSelectOptions.maxSelectNumber = 9 - this.tplMovMediaUris.length;
+            const photoViewPicker = new photoAccessHelper.PhotoViewPicker();
+            const result = await photoViewPicker.select(photoSelectOptions);
+            if (result && result.photoUris && result.photoUris.length > 0) {
+                this.tplMovMediaUris = this.tplMovMediaUris.concat(result.photoUris);
+            }
+        }
+        catch (error) {
+            console.error('选择观影图片失败:', error);
+        }
+    }
+    removeMovieMedia(index: number): void {
+        this.tplMovMediaUris.splice(index, 1);
     }
     // ---- 多选模式 ----
     enterMultiSelectMode(): void {
@@ -1212,7 +1671,7 @@ class HomePage extends ViewPU {
                 {
                     this.observeComponentCreation2((elmtId, isInitialRender) => {
                         if (isInitialRender) {
-                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 730, col: 11 });
+                            let componentCall = new SettingPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 938, col: 11 });
                             ViewPU.create(componentCall);
                             let paramsLambda = () => {
                                 return {};
@@ -1382,7 +1841,7 @@ class HomePage extends ViewPU {
                         selectedDate: this.selectedDate,
                         colors: this.currentColors,
                         onDateSelected: (date: string) => this.onDateSelected(date)
-                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 823, col: 11 });
+                    }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 1031, col: 11 });
                     ViewPU.create(componentCall);
                     let paramsLambda = () => {
                         return {
@@ -1425,7 +1884,7 @@ class HomePage extends ViewPU {
                                         this.onDateSelected(date);
                                         this.toggleCalendar();
                                     }
-                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 833, col: 13 });
+                                }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 1041, col: 13 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {
@@ -1566,7 +2025,7 @@ class HomePage extends ViewPU {
                                                 onAddRemarkClick: () => {
                                                     this.isAddingRemark = true;
                                                 }
-                                            }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 874, col: 15 });
+                                            }, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/HomePage.ets", line: 1082, col: 15 });
                                             ViewPU.create(componentCall);
                                             let paramsLambda = () => {
                                                 return {
@@ -1652,7 +2111,6 @@ class HomePage extends ViewPU {
         Stack.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
-            // 💡 核心点 2：把你的 `EditingToolbar()` 彻底解放出来，放到 Stack 的正下方、大 Column 的最底部！
             if (this.editingTodoId > 0) {
                 this.ifElseBranchUpdateFunction(0, () => {
                     this.EditingToolbar.bind(this)();
@@ -1836,9 +2294,8 @@ class HomePage extends ViewPU {
                         Button.margin({ left: 10 });
                         // 添加按钮
                         Button.onClick(() => {
-                            this.isAddMode = true;
-                            Context.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
-                                this.showPublishDialog = true;
+                            Context.animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+                                this.showTemplateChoiceDialog = true;
                             });
                         });
                     }, Button);
@@ -2170,6 +2627,112 @@ class HomePage extends ViewPU {
                     Column.pop();
                 });
             }
+            // 模板选择对话框
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 模板选择对话框
+            if (this.showTemplateChoiceDialog) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.transition(TransitionEffect.scale({ x: 0.95, y: 0.95 })
+                            .combine(TransitionEffect.opacity(0))
+                            .animation({ duration: 200, curve: Curve.EaseOut }));
+                    }, Column);
+                    this.TemplateChoiceDialog.bind(this)();
+                    Column.pop();
+                });
+            }
+            // 模板列表下拉框
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 模板列表下拉框
+            if (this.showTemplateListDropdown) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.transition(TransitionEffect.translate({ y: '100%' })
+                            .animation({ duration: 250, curve: Curve.EaseOut }));
+                    }, Column);
+                    this.TemplateListDropdown.bind(this)();
+                    Column.pop();
+                });
+            }
+            // 记账模板对话框
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 记账模板对话框
+            if (this.showTemplateAccountingDialog) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.transition(TransitionEffect.translate({ y: '100%' })
+                            .animation({ duration: 300, curve: Curve.EaseOut }));
+                    }, Column);
+                    this.TemplateAccountingDialog.bind(this)();
+                    Column.pop();
+                });
+            }
+            // 饮食模板对话框
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 饮食模板对话框
+            if (this.showTemplateDiningDialog) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.transition(TransitionEffect.translate({ y: '100%' })
+                            .animation({ duration: 300, curve: Curve.EaseOut }));
+                    }, Column);
+                    this.TemplateDiningDialog.bind(this)();
+                    Column.pop();
+                });
+            }
+            // 观影模板对话框
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 观影模板对话框
+            if (this.showTemplateMovieDialog) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create();
+                        Column.transition(TransitionEffect.translate({ y: '100%' })
+                            .animation({ duration: 300, curve: Curve.EaseOut }));
+                    }, Column);
+                    this.TemplateMovieDialog.bind(this)();
+                    Column.pop();
+                });
+            }
             else {
                 this.ifElseBranchUpdateFunction(1, () => {
                 });
@@ -2177,6 +2740,418 @@ class HomePage extends ViewPU {
         }, If);
         If.pop();
         Stack.pop();
+    }
+    // ==================== 模板数据渲染 ====================
+    renderTemplateData(templateDataJson: string, parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (templateDataJson.includes('"type":"accounting"') ||
+                templateDataJson.includes('"type": "accounting"')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 8 });
+                        Column.width('100%');
+                        Column.padding(12);
+                        Column.backgroundColor(this.currentColors.bgMain);
+                        Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.margin({ top: 4, bottom: 8 });
+                    }, Column);
+                    this.renderAccountingDataFromJson.bind(this)(templateDataJson);
+                    Column.pop();
+                });
+            }
+            else if (templateDataJson.includes('"type":"dining"') ||
+                templateDataJson.includes('"type": "dining"')) {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 8 });
+                        Column.width('100%');
+                        Column.padding(12);
+                        Column.backgroundColor(this.currentColors.bgMain);
+                        Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.margin({ top: 4, bottom: 8 });
+                    }, Column);
+                    this.renderDiningDataFromJson.bind(this)(templateDataJson);
+                    Column.pop();
+                });
+            }
+            else if (templateDataJson.includes('"type":"movie"') ||
+                templateDataJson.includes('"type": "movie"')) {
+                this.ifElseBranchUpdateFunction(2, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 8 });
+                        Column.width('100%');
+                        Column.padding(12);
+                        Column.backgroundColor(this.currentColors.bgMain);
+                        Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Column.margin({ top: 4, bottom: 8 });
+                    }, Column);
+                    this.renderMovieDataFromJson.bind(this)(templateDataJson);
+                    Column.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(3, () => {
+                });
+            }
+        }, If);
+        If.pop();
+    }
+    renderAccountingDataFromJson(json: string, parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.extractField(json, 'date'));
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'location')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('地点：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'location'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('金额：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(`￥${this.extractField(json, 'amount')}`);
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.primary);
+            Text.fontWeight(FontWeight.Medium);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('物品：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.extractField(json, 'item'));
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        Column.pop();
+    }
+    renderDiningDataFromJson(json: string, parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.extractField(json, 'date'));
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'location')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('地点：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'location'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'amount')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('金额：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(`￥${this.extractField(json, 'amount')}`);
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.primary);
+                        Text.fontWeight(FontWeight.Medium);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('菜品：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.extractField(json, 'dish'));
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'rating')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                        Row.alignItems(VerticalAlign.Top);
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('评价：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'rating'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
+                        Text.layoutWeight(1);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Column.pop();
+    }
+    renderMovieDataFromJson(json: string, parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('影片：');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width(60);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.extractField(json, 'title'));
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+            Text.fontWeight(FontWeight.Medium);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'genre')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('类型：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'genre'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'score')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('评分：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'score'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.primary);
+                        Text.fontWeight(FontWeight.Medium);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.extractField(json, 'experience')) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width('100%');
+                        Row.alignItems(VerticalAlign.Top);
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('体验：');
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMuted);
+                        Text.width(60);
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.extractField(json, 'experience'));
+                        Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontColor(this.currentColors.textMain);
+                        Text.layoutWeight(1);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Column.pop();
+    }
+    private extractField(json: string, fieldName: string): string {
+        try {
+            const match = json.match(new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`, 'i'));
+            return match ? match[1] : '';
+        }
+        catch {
+            return '';
+        }
     }
     // ==================== 随手记卡片组件 ====================
     MomentCard(moment: DiaryPost, parent = null) {
@@ -2266,11 +3241,27 @@ class HomePage extends ViewPU {
                         Text.create(moment.content);
                         Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontColor(this.currentColors.textMain);
+                        Text.fontWeight(FontWeight.Medium);
                         Text.lineHeight(24);
                         Text.width('100%');
-                        Text.margin({ bottom: moment.mediaUrls && moment.mediaUrls.length > 0 ? 12 : 0 });
+                        Text.margin({ bottom: 8 });
                     }, Text);
                     Text.pop();
+                });
+            }
+            // 模板数据展示
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            // 模板数据展示
+            if (moment.templateData) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.renderTemplateData.bind(this)(moment.templateData);
                 });
             }
             // 媒体网格
@@ -2714,6 +3705,987 @@ class HomePage extends ViewPU {
         }, If);
         If.pop();
         Column.pop();
+        Column.pop();
+    }
+    // ==================== 模板选择对话框 ====================
+    TemplateChoiceDialog(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.height('100%');
+            Column.backgroundColor('#80000000');
+            Column.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showTemplateChoiceDialog = false;
+                });
+            });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('85%');
+            Column.padding(24);
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('发布新随手记');
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.currentColors.textMain);
+            Text.margin({ bottom: 24 });
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width('100%');
+            Button.height(56);
+            Button.backgroundColor(this.currentColors.bgMain);
+            Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.onClick(() => {
+                this.showTemplateChoiceDialog = false;
+                this.isAddMode = true;
+                Context.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+                    this.showPublishDialog = true;
+                });
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831910, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(20);
+            SymbolGlyph.fontColor([this.currentColors.primary]);
+            SymbolGlyph.margin({ right: 8 });
+        }, SymbolGlyph);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('我要自己写');
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width('100%');
+            Button.height(56);
+            Button.backgroundColor(this.currentColors.bgMain);
+            Button.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.margin({ top: 12 });
+            Button.onClick(() => {
+                this.showTemplateChoiceDialog = false;
+                Context.animateTo({ duration: 250, curve: Curve.EaseOut }, () => {
+                    this.showTemplateListDropdown = true;
+                });
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831558, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(20);
+            SymbolGlyph.fontColor([this.currentColors.primary]);
+            SymbolGlyph.margin({ right: 8 });
+        }, SymbolGlyph);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('我要用模板');
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('取消');
+            Button.width('100%');
+            Button.height(48);
+            Button.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontColor(this.currentColors.textMuted);
+            Button.backgroundColor(Color.Transparent);
+            Button.margin({ top: 16 });
+            Button.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showTemplateChoiceDialog = false;
+                });
+            });
+        }, Button);
+        Button.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        Column.pop();
+    }
+    // ==================== 模板列表下拉框 ====================
+    TemplateListDropdown(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.height('100%');
+            Column.backgroundColor('#80000000');
+            Column.justifyContent(FlexAlign.End);
+            Column.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showTemplateListDropdown = false;
+                });
+            });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.padding(20);
+            Column.backgroundColor(this.currentColors.bgCard);
+            Column.borderRadius({ topLeft: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" }, topRight: { "id": 16777330, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" } });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.margin({ bottom: 20 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showTemplateListDropdown = false;
+                });
+                Context.animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+                    this.showTemplateChoiceDialog = true;
+                });
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832663, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('选择模板');
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 200, curve: Curve.EaseIn }, () => {
+                    this.showTemplateListDropdown = false;
+                });
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Button.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.height(72);
+            Row.padding({ left: 16, right: 16 });
+            Row.backgroundColor(this.currentColors.bgMain);
+            Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.onClick(() => {
+                this.showTemplateListDropdown = false;
+                this.tplAccDate = DateUtils.getToday();
+                Context.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+                    this.showTemplateAccountingDialog = true;
+                });
+            });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('💰');
+            Text.fontSize(22);
+            Text.margin({ right: 12 });
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.alignItems(HorizontalAlign.Start);
+            Column.layoutWeight(1);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('记账');
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期 · 地点 · 金额 · 物品');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+            Text.margin({ top: 2 });
+        }, Text);
+        Text.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832664, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(14);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.height(72);
+            Row.padding({ left: 16, right: 16 });
+            Row.backgroundColor(this.currentColors.bgMain);
+            Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.margin({ top: 12 });
+            Row.onClick(() => {
+                this.showTemplateListDropdown = false;
+                this.tplDinDate = DateUtils.getToday();
+                Context.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+                    this.showTemplateDiningDialog = true;
+                });
+            });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('🍜');
+            Text.fontSize(22);
+            Text.margin({ right: 12 });
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.alignItems(HorizontalAlign.Start);
+            Column.layoutWeight(1);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('饮食');
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期 · 地点 · 金额 · 菜品 · 评价');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+            Text.margin({ top: 2 });
+        }, Text);
+        Text.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832664, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(14);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.height(72);
+            Row.padding({ left: 16, right: 16 });
+            Row.backgroundColor(this.currentColors.bgMain);
+            Row.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Row.margin({ top: 12 });
+            Row.onClick(() => {
+                this.showTemplateListDropdown = false;
+                Context.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+                    this.showTemplateMovieDialog = true;
+                });
+            });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('🎬');
+            Text.fontSize(22);
+            Text.margin({ right: 12 });
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.alignItems(HorizontalAlign.Start);
+            Column.layoutWeight(1);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('观影');
+            Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMain);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('影片名 · 影片类型 · 个人评分 · 观影体验');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+            Text.margin({ top: 2 });
+        }, Text);
+        Text.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125832664, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(14);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Row.pop();
+        Column.pop();
+        Column.pop();
+    }
+    // ==================== 记账模板对话框 ====================
+    TemplateAccountingDialog(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.height('100%');
+            Column.padding(16);
+            Column.backgroundColor(this.currentColors.bgCard);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.margin({ bottom: 4 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 250, curve: Curve.EaseIn }, () => {
+                    this.showTemplateAccountingDialog = false;
+                });
+                this.resetAccountingFields();
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('💰 记账');
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('发布');
+            Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontColor(Color.White);
+            Button.backgroundColor(this.tplAccDate && this.tplAccAmount && this.tplAccItem
+                ? this.currentColors.primary : '#CCCCCC');
+            Button.borderRadius(16);
+            Button.width(56);
+            Button.height(32);
+            Button.onClick(() => { this.publishAccountingTemplate(); });
+        }, Button);
+        Button.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 16 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: 'YYYY-MM-DD', text: this.tplAccDate });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplAccDate = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('地点');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '去哪shopping啦~', text: this.tplAccLocation });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplAccLocation = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('金额 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '0.00', text: this.tplAccAmount });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.type(InputType.PhoneNumber);
+            TextInput.onChange((v: string) => { this.tplAccAmount = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('物品 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '让我看看买了什么！', text: this.tplAccItem });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplAccItem = v; });
+        }, TextInput);
+        Column.pop();
+        Column.pop();
+        Scroll.pop();
+        Column.pop();
+    }
+    // ==================== 饮食模板对话框 ====================
+    TemplateDiningDialog(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.height('100%');
+            Column.padding(16);
+            Column.backgroundColor(this.currentColors.bgCard);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.margin({ bottom: 8 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 250, curve: Curve.EaseIn }, () => {
+                    this.showTemplateDiningDialog = false;
+                });
+                this.resetDiningFields();
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('🍜 饮食');
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('发布');
+            Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontColor(Color.White);
+            Button.backgroundColor(this.tplDinDate && this.tplDinDish
+                ? this.currentColors.primary : '#CCCCCC');
+            Button.borderRadius(16);
+            Button.width(56);
+            Button.height(32);
+            Button.onClick(() => { this.publishDiningTemplate(); });
+        }, Button);
+        Button.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.layoutWeight(1);
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 16 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('日期 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: 'YYYY-MM-DD', text: this.tplDinDate });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplDinDate = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('地点');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '去哪里吃饭啦~', text: this.tplDinLocation });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplDinLocation = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('金额');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '0.00', text: this.tplDinAmount });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.type(InputType.PhoneNumber);
+            TextInput.onChange((v: string) => { this.tplDinAmount = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('菜品 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '吃的啥！', text: this.tplDinDish });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplDinDish = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('评价');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextArea.create({ placeholder: '好吃吗！', text: this.tplDinRating });
+            TextArea.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.backgroundColor(this.currentColors.bgMain);
+            TextArea.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.height(88);
+            TextArea.onChange((v: string) => { this.tplDinRating = v; });
+        }, TextArea);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('图片');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.scrollable(ScrollDirection.Horizontal);
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 8 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            ForEach.create();
+            const forEachItemGenFunction = (_item, index: number) => {
+                const uri = _item;
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Stack.create();
+                }, Stack);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Image.create(uri);
+                    Image.width(80);
+                    Image.height(80);
+                    Image.objectFit(ImageFit.Cover);
+                    Image.borderRadius(6);
+                }, Image);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Button.createWithChild();
+                    Button.width(18);
+                    Button.height(18);
+                    Button.backgroundColor('#80000000');
+                    Button.borderRadius(9);
+                    Button.position({ x: 0, y: 0 });
+                    Button.offset({ x: -4, y: -4 });
+                    Button.onClick(() => this.removeDiningMedia(index));
+                }, Button);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    SymbolGlyph.fontSize(10);
+                    SymbolGlyph.fontColor([Color.White]);
+                }, SymbolGlyph);
+                Button.pop();
+                Stack.pop();
+            };
+            this.forEachUpdateFunction(elmtId, this.tplDinMediaUris, forEachItemGenFunction, undefined, true, false);
+        }, ForEach);
+        ForEach.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.tplDinMediaUris.length < 9) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width(80);
+                        Row.height(80);
+                        Row.border({ width: 1, color: this.currentColors.border });
+                        Row.borderRadius(6);
+                        Row.justifyContent(FlexAlign.Center);
+                        Row.onClick(() => this.pickDiningMedia());
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('＋');
+                        Text.fontSize(28);
+                        Text.fontColor(this.currentColors.textMuted);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Row.pop();
+        Scroll.pop();
+        Row.pop();
+        Column.pop();
+        Column.pop();
+        Scroll.pop();
+        Column.pop();
+    }
+    // ==================== 观影模板对话框 ====================
+    TemplateMovieDialog(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width('100%');
+            Column.height('100%');
+            Column.padding(16);
+            Column.backgroundColor(this.currentColors.bgCard);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.margin({ bottom: 8 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithChild();
+            Button.width(32);
+            Button.height(32);
+            Button.backgroundColor(Color.Transparent);
+            Button.onClick(() => {
+                Context.animateTo({ duration: 250, curve: Curve.EaseIn }, () => {
+                    this.showTemplateMovieDialog = false;
+                });
+                this.resetMovieFields();
+            });
+        }, Button);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            SymbolGlyph.fontSize(18);
+            SymbolGlyph.fontColor([this.currentColors.textMuted]);
+        }, SymbolGlyph);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('🎬 观影');
+            Text.fontSize({ "id": 16777332, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.currentColors.textMain);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('发布');
+            Button.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Button.fontColor(Color.White);
+            Button.backgroundColor(this.tplMovTitle
+                ? this.currentColors.primary : '#CCCCCC');
+            Button.borderRadius(16);
+            Button.width(56);
+            Button.height(32);
+            Button.onClick(() => { this.publishMovieTemplate(); });
+        }, Button);
+        Button.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.layoutWeight(1);
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 16 });
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('影片名 *');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '电影/剧集名称', text: this.tplMovTitle });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplMovTitle = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('影片类型');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '如：动作 / 科幻 / 爱情', text: this.tplMovGenre });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplMovGenre = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('个人评分');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextInput.create({ placeholder: '如：8.5 / 10', text: this.tplMovScore });
+            TextInput.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.backgroundColor(this.currentColors.bgMain);
+            TextInput.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextInput.onChange((v: string) => { this.tplMovScore = v; });
+        }, TextInput);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('观影体验');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            TextArea.create({ placeholder: '好看不！', text: this.tplMovExperience });
+            TextArea.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.backgroundColor(this.currentColors.bgMain);
+            TextArea.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            TextArea.height(120);
+            TextArea.onChange((v: string) => { this.tplMovExperience = v; });
+        }, TextArea);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 6 });
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('图片');
+            Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+            Text.fontColor(this.currentColors.textMuted);
+            Text.width('100%');
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.scrollable(ScrollDirection.Horizontal);
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 8 });
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            ForEach.create();
+            const forEachItemGenFunction = (_item, index: number) => {
+                const uri = _item;
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Stack.create();
+                }, Stack);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Image.create(uri);
+                    Image.width(80);
+                    Image.height(80);
+                    Image.objectFit(ImageFit.Cover);
+                    Image.borderRadius(6);
+                }, Image);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Button.createWithChild();
+                    Button.width(18);
+                    Button.height(18);
+                    Button.backgroundColor('#80000000');
+                    Button.borderRadius(9);
+                    Button.position({ x: 0, y: 0 });
+                    Button.offset({ x: -4, y: -4 });
+                    Button.onClick(() => this.removeMovieMedia(index));
+                }, Button);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    SymbolGlyph.create({ "id": 125831487, "type": 40000, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                    SymbolGlyph.fontSize(10);
+                    SymbolGlyph.fontColor([Color.White]);
+                }, SymbolGlyph);
+                Button.pop();
+                Stack.pop();
+            };
+            this.forEachUpdateFunction(elmtId, this.tplMovMediaUris, forEachItemGenFunction, undefined, true, false);
+        }, ForEach);
+        ForEach.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.tplMovMediaUris.length < 9) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create();
+                        Row.width(80);
+                        Row.height(80);
+                        Row.border({ width: 1, color: this.currentColors.border });
+                        Row.borderRadius(6);
+                        Row.justifyContent(FlexAlign.Center);
+                        Row.onClick(() => this.pickMovieMedia());
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('＋');
+                        Text.fontSize(28);
+                        Text.fontColor(this.currentColors.textMuted);
+                    }, Text);
+                    Text.pop();
+                    Row.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Row.pop();
+        Scroll.pop();
+        Row.pop();
+        Column.pop();
+        Column.pop();
+        Scroll.pop();
         Column.pop();
     }
     // ==================== 合集命名对话框 ====================

@@ -1,5 +1,5 @@
 import type { DiaryPost } from '../model/DiaryPost';
-import { TemplateType } from '../model/TemplateData';
+import { TEMPLATE_COLLECTION_ACCOUNTING, TEMPLATE_COLLECTION_DINING, TEMPLATE_COLLECTION_MOVIE } from '../model/TemplateData';
 import DiaryViewModel from './DiaryViewModel';
 
 /**
@@ -20,24 +20,24 @@ export class CategoryViewModel {
   }
 
   /**
-   * 获取阅读记录列表
-   */
-  async getReadingPosts(): Promise<DiaryPost[]> {
-    return await this.diaryVM.getPostsByCategory(TemplateType.READING);
-  }
-
-  /**
    * 获取记账记录列表
    */
-  async getExpensePosts(): Promise<DiaryPost[]> {
-    return await this.diaryVM.getPostsByCategory(TemplateType.EXPENSE);
+  async getAccountingPosts(): Promise<DiaryPost[]> {
+    return await this.diaryVM.getPostsByCategory(TEMPLATE_COLLECTION_ACCOUNTING);
   }
 
   /**
-   * 获取穿搭记录列表
+   * 获取饮食记录列表
    */
-  async getOOTDPosts(): Promise<DiaryPost[]> {
-    return await this.diaryVM.getPostsByCategory(TemplateType.OOTD);
+  async getDiningPosts(): Promise<DiaryPost[]> {
+    return await this.diaryVM.getPostsByCategory(TEMPLATE_COLLECTION_DINING);
+  }
+
+  /**
+   * 获取观影记录列表
+   */
+  async getMoviePosts(): Promise<DiaryPost[]> {
+    return await this.diaryVM.getPostsByCategory(TEMPLATE_COLLECTION_MOVIE);
   }
 
   /**
@@ -45,9 +45,9 @@ export class CategoryViewModel {
    */
   async getCategoryStats(): Promise<Map<string, number>> {
     const stats = new Map<string, number>();
-    stats.set(TemplateType.READING, (await this.getReadingPosts()).length);
-    stats.set(TemplateType.EXPENSE, (await this.getExpensePosts()).length);
-    stats.set(TemplateType.OOTD, (await this.getOOTDPosts()).length);
+    stats.set(TEMPLATE_COLLECTION_ACCOUNTING, (await this.getAccountingPosts()).length);
+    stats.set(TEMPLATE_COLLECTION_DINING, (await this.getDiningPosts()).length);
+    stats.set(TEMPLATE_COLLECTION_MOVIE, (await this.getMoviePosts()).length);
     return stats;
   }
 }

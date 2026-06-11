@@ -616,48 +616,91 @@ struct PlogEditorPage {
     this.canvasOffsetY = 0;
   }
 
+  private extractField(json: string, fieldName: string): string {
+    try {
+      const match = json.match(new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`, 'i'));
+      return match ? match[1] : '';
+    } catch {
+      return '';
+    }
+  }
+
+  private buildTemplateText(post: DiaryPost): string {
+    if (!post.templateData) return post.content;
+    const d = post.templateData;
+    const lines: string[] = [];
+    if (d.includes('"type":"accounting"') || d.includes('"type": "accounting"')) {
+      lines.push(`💰 记账`);
+      lines.push(`日期：${this.extractField(d, 'date')}`);
+      const loc = this.extractField(d, 'location');
+      if (loc) lines.push(`地点：${loc}`);
+      lines.push(`金额：￥${this.extractField(d, 'amount')}`);
+      lines.push(`物品：${this.extractField(d, 'item')}`);
+    } else if (d.includes('"type":"dining"') || d.includes('"type": "dining"')) {
+      lines.push(`🍜 饮食`);
+      lines.push(`日期：${this.extractField(d, 'date')}`);
+      const loc = this.extractField(d, 'location');
+      if (loc) lines.push(`地点：${loc}`);
+      const amt = this.extractField(d, 'amount');
+      if (amt) lines.push(`金额：￥${amt}`);
+      lines.push(`菜品：${this.extractField(d, 'dish')}`);
+      const rating = this.extractField(d, 'rating');
+      if (rating) lines.push(`评价：${rating}`);
+    } else if (d.includes('"type":"movie"') || d.includes('"type": "movie"')) {
+      lines.push(`🎬 观影`);
+      lines.push(`影片：${this.extractField(d, 'title')}`);
+      const genre = this.extractField(d, 'genre');
+      if (genre) lines.push(`类型：${genre}`);
+      const score = this.extractField(d, 'score');
+      if (score) lines.push(`评分：${score}`);
+      const exp = this.extractField(d, 'experience');
+      if (exp) lines.push(`体验：${exp}`);
+    }
+    return lines.length > 0 ? lines.join('\n') : post.content;
+  }
+
   /**
    * 添加随手记到手账
    */
   addDiaryToCanvas(post: DiaryPost): void {
     const baseIndex = this.elements.length;
+    const textContent = this.buildTemplateText(post);
 
-    // 添加文字内容
-    if (post.content && post.content.trim()) {
+    if (textContent && textContent.trim()) {
+      const lineCount = textContent.split('\n').length;
       const textElement: CanvasElement = {
         type: 'text',
         x: 20,
-        y: 20 + baseIndex * 60,
-        width: 200,
-        height: 60,
+        y: 20 + baseIndex * 20,
+        width: 220,
+        height: Math.max(60, lineCount * 22 + 16),
         rotation: 0,
-        content: post.content,
+        content: textContent,
         zIndex: baseIndex,
-        fontSize: 14,
+        fontSize: 13,
         color: '#333333',
         textOpacity: 100,
-      fontStyle: 'normal',
-      fontFamily: '',
-      shadowOpacity: 0,
-      textAlign: TextAlign.Start,
-      verticalAlign: 1,
-      textDirection: 'horizontal',
-      lineSpacing: 1.2,
-      letterSpacing: 0,
-      fontWeight: 400,
-      italicAngle: 0,
-      _version: 0,
-    };
-    this.elements.push(textElement);
-  }
+        fontStyle: 'normal',
+        fontFamily: '',
+        shadowOpacity: 0,
+        textAlign: TextAlign.Start,
+        verticalAlign: 0,
+        textDirection: 'horizontal',
+        lineSpacing: 1.4,
+        letterSpacing: 0,
+        fontWeight: 400,
+        italicAngle: 0,
+        _version: 0,
+      };
+      this.elements.push(textElement);
+    }
 
-  // 添加图片
-  if (post.mediaUrls && post.mediaUrls.length > 0) {
-    post.mediaUrls.forEach((url, idx) => {
+    if (post.mediaUrls && post.mediaUrls.length > 0) {
+      post.mediaUrls.forEach((url, idx) => {
         const imgElement: CanvasElement = {
           type: 'image',
           x: 20 + ((baseIndex + idx) % 3) * 120,
-          y: 100 + Math.floor((baseIndex + idx) / 3) * 120,
+          y: 120 + Math.floor((baseIndex + idx) / 3) * 120,
           width: 100,
           height: 100,
           rotation: 0,

@@ -158,7 +158,9 @@ export class TodoListComponent extends ViewPU {
                     Button.pop();
                 });
             }
-            else {
+            else /**
+             * 长按拖拽时显示的悬浮卡片
+             */ {
                 this.ifElseBranchUpdateFunction(1, () => {
                 });
             }

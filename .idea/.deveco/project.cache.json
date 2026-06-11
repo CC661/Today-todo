@@ -9,7 +9,7 @@
 		"SELECT_BUILD_PRODUCT":"default",
 		"BUNDLE_NAME":"com.example.lifetracker",
 		"BUILD_PATH":{
-			"OUTPUT_PATH":"E:\\LifeTracker\\build\\outputs\\default"
+			"OUTPUT_PATH":"F:\\harmonyOS\\Today-todo\\build\\outputs\\default"
 		},
 		"SELECT_BUILD_MODE":""
 	}

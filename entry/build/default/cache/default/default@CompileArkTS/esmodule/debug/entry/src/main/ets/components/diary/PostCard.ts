@@ -36,6 +36,405 @@ export default class PostCardComponent extends ViewPU {
     set post(newValue: DiaryPost) {
         this.__post.set(newValue);
     }
+    private extractField(json: string, fieldName: string): string {
+        try {
+            const match = json.match(new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`, 'i'));
+            return match ? match[1] : '';
+        }
+        catch {
+            return '';
+        }
+    }
+    TemplateDataBlock(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.post.templateData) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        If.create();
+                        if (this.post.templateData.includes('"type":"accounting"') ||
+                            this.post.templateData.includes('"type": "accounting"')) {
+                            this.ifElseBranchUpdateFunction(0, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create({ space: 6 });
+                                    Column.width('100%');
+                                    Column.padding(10);
+                                    Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.margin({ top: 6, bottom: 6 });
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('日期：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.extractField(this.post.templateData, 'date'));
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'location')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('地点：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'location'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('金额：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(`￥${this.extractField(this.post.templateData, 'amount')}`);
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('物品：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.extractField(this.post.templateData, 'item'));
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                Column.pop();
+                            });
+                        }
+                        else if (this.post.templateData.includes('"type":"dining"') ||
+                            this.post.templateData.includes('"type": "dining"')) {
+                            this.ifElseBranchUpdateFunction(1, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create({ space: 6 });
+                                    Column.width('100%');
+                                    Column.padding(10);
+                                    Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.margin({ top: 6, bottom: 6 });
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('日期：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.extractField(this.post.templateData, 'date'));
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'location')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('地点：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'location'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'amount')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('金额：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(`￥${this.extractField(this.post.templateData, 'amount')}`);
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontWeight(FontWeight.Medium);
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('菜品：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.extractField(this.post.templateData, 'dish'));
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'rating')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                                Row.alignItems(VerticalAlign.Top);
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('评价：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'rating'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.layoutWeight(1);
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                Column.pop();
+                            });
+                        }
+                        else if (this.post.templateData.includes('"type":"movie"') ||
+                            this.post.templateData.includes('"type": "movie"')) {
+                            this.ifElseBranchUpdateFunction(2, () => {
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Column.create({ space: 6 });
+                                    Column.width('100%');
+                                    Column.padding(10);
+                                    Column.backgroundColor({ "id": 16777311, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.borderRadius({ "id": 16777328, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Column.margin({ top: 6, bottom: 6 });
+                                }, Column);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Row.create();
+                                    Row.width('100%');
+                                }, Row);
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create('影片：');
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.width(60);
+                                }, Text);
+                                Text.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    Text.create(this.extractField(this.post.templateData, 'title'));
+                                    Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                    Text.fontWeight(FontWeight.Medium);
+                                }, Text);
+                                Text.pop();
+                                Row.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'genre')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('类型：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'genre'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'score')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('评分：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'score'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777317, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontWeight(FontWeight.Medium);
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                    If.create();
+                                    if (this.extractField(this.post.templateData, 'experience')) {
+                                        this.ifElseBranchUpdateFunction(0, () => {
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Row.create();
+                                                Row.width('100%');
+                                                Row.alignItems(VerticalAlign.Top);
+                                            }, Row);
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create('体验：');
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777323, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.width(60);
+                                            }, Text);
+                                            Text.pop();
+                                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                                Text.create(this.extractField(this.post.templateData, 'experience'));
+                                                Text.fontSize({ "id": 16777334, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                                                Text.layoutWeight(1);
+                                            }, Text);
+                                            Text.pop();
+                                            Row.pop();
+                                        });
+                                    }
+                                    else {
+                                        this.ifElseBranchUpdateFunction(1, () => {
+                                        });
+                                    }
+                                }, If);
+                                If.pop();
+                                Column.pop();
+                            });
+                        }
+                        else {
+                            this.ifElseBranchUpdateFunction(3, () => {
+                            });
+                        }
+                    }, If);
+                    If.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+    }
     initialRender() {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Column.create();
@@ -117,20 +516,23 @@ export default class PostCardComponent extends ViewPU {
                         Text.create(this.post.content);
                         Text.fontSize({ "id": 16777331, "type": 10002, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
                         Text.fontColor({ "id": 16777322, "type": 10001, params: [], "bundleName": "com.example.lifetracker", "moduleName": "entry" });
+                        Text.fontWeight(FontWeight.Medium);
                         Text.lineHeight(24);
                         Text.width('100%');
-                        Text.margin({ bottom: this.post.mediaUrls.length > 0 ? 12 : 0 });
+                        Text.margin({ bottom: 4 });
                     }, Text);
                     Text.pop();
                 });
             }
-            // 媒体网格(最多9张)
+            // 模板字段
             else {
                 this.ifElseBranchUpdateFunction(1, () => {
                 });
             }
         }, If);
         If.pop();
+        // 模板字段
+        this.TemplateDataBlock.bind(this)();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
             // 媒体网格(最多9张)

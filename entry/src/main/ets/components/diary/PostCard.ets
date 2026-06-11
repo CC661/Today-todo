@@ -8,6 +8,144 @@ import DateUtils from '../../common/utils/DateUtils';
 export default struct PostCardComponent {
   @Prop post: DiaryPost;
 
+  private extractField(json: string, fieldName: string): string {
+    try {
+      const match = json.match(new RegExp(`"${fieldName}"\\s*:\\s*"([^"]*)"`, 'i'));
+      return match ? match[1] : '';
+    } catch {
+      return '';
+    }
+  }
+
+  @Builder
+  TemplateDataBlock() {
+    if (this.post.templateData) {
+      if (this.post.templateData.includes('"type":"accounting"') ||
+          this.post.templateData.includes('"type": "accounting"')) {
+        Column({ space: 6 }) {
+          Row() {
+            Text('日期：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(this.extractField(this.post.templateData, 'date'))
+              .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+          }.width('100%')
+          if (this.extractField(this.post.templateData, 'location')) {
+            Row() {
+              Text('地点：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'location'))
+                .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+            }.width('100%')
+          }
+          Row() {
+            Text('金额：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(`￥${this.extractField(this.post.templateData, 'amount')}`)
+              .fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.primary_color')).fontWeight(FontWeight.Medium)
+          }.width('100%')
+          Row() {
+            Text('物品：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(this.extractField(this.post.templateData, 'item'))
+              .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+          }.width('100%')
+        }
+        .width('100%').padding(10)
+        .backgroundColor($r('app.color.background_color'))
+        .borderRadius($r('app.float.border_radius_md'))
+        .margin({ top: 6, bottom: 6 })
+      } else if (this.post.templateData.includes('"type":"dining"') ||
+                 this.post.templateData.includes('"type": "dining"')) {
+        Column({ space: 6 }) {
+          Row() {
+            Text('日期：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(this.extractField(this.post.templateData, 'date'))
+              .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+          }.width('100%')
+          if (this.extractField(this.post.templateData, 'location')) {
+            Row() {
+              Text('地点：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'location'))
+                .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+            }.width('100%')
+          }
+          if (this.extractField(this.post.templateData, 'amount')) {
+            Row() {
+              Text('金额：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(`￥${this.extractField(this.post.templateData, 'amount')}`)
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.primary_color')).fontWeight(FontWeight.Medium)
+            }.width('100%')
+          }
+          Row() {
+            Text('菜品：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(this.extractField(this.post.templateData, 'dish'))
+              .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+          }.width('100%')
+          if (this.extractField(this.post.templateData, 'rating')) {
+            Row() {
+              Text('评价：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'rating'))
+                .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+                .layoutWeight(1)
+            }.width('100%').alignItems(VerticalAlign.Top)
+          }
+        }
+        .width('100%').padding(10)
+        .backgroundColor($r('app.color.background_color'))
+        .borderRadius($r('app.float.border_radius_md'))
+        .margin({ top: 6, bottom: 6 })
+      } else if (this.post.templateData.includes('"type":"movie"') ||
+                 this.post.templateData.includes('"type": "movie"')) {
+        Column({ space: 6 }) {
+          Row() {
+            Text('影片：').fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary')).width(60)
+            Text(this.extractField(this.post.templateData, 'title'))
+              .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+              .fontWeight(FontWeight.Medium)
+          }.width('100%')
+          if (this.extractField(this.post.templateData, 'genre')) {
+            Row() {
+              Text('类型：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'genre'))
+                .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+            }.width('100%')
+          }
+          if (this.extractField(this.post.templateData, 'score')) {
+            Row() {
+              Text('评分：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'score'))
+                .fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.primary_color')).fontWeight(FontWeight.Medium)
+            }.width('100%')
+          }
+          if (this.extractField(this.post.templateData, 'experience')) {
+            Row() {
+              Text('体验：').fontSize($r('app.float.font_size_sm'))
+                .fontColor($r('app.color.text_secondary')).width(60)
+              Text(this.extractField(this.post.templateData, 'experience'))
+                .fontSize($r('app.float.font_size_sm')).fontColor($r('app.color.text_primary'))
+                .layoutWeight(1)
+            }.width('100%').alignItems(VerticalAlign.Top)
+          }
+        }
+        .width('100%').padding(10)
+        .backgroundColor($r('app.color.background_color'))
+        .borderRadius($r('app.float.border_radius_md'))
+        .margin({ top: 6, bottom: 6 })
+      }
+    }
+  }
+
   build() {
     Column() {
       // 头部:时间和位置
@@ -39,10 +177,14 @@ export default struct PostCardComponent {
         Text(this.post.content)
           .fontSize($r('app.float.font_size_base'))
           .fontColor($r('app.color.text_primary'))
+          .fontWeight(FontWeight.Medium)
           .lineHeight(24)
           .width('100%')
-          .margin({ bottom: this.post.mediaUrls.length > 0 ? 12 : 0 })
+          .margin({ bottom: 4 })
       }
+
+      // 模板字段
+      this.TemplateDataBlock()
 
       // 媒体网格(最多9张)
       if (this.post.mediaUrls.length > 0) {

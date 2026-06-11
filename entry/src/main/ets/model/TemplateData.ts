@@ -1,33 +1,47 @@
-/**
- * 模板数据结构定义
- */
+export const TEMPLATE_COLLECTION_ACCOUNTING = '记账';
+export const TEMPLATE_COLLECTION_DINING = '饮食';
+export const TEMPLATE_COLLECTION_MOVIE = '观影';
 
-// 阅读记录模板
-export interface ReadingData {
-  bookTitle: string;
-  author: string;
-  quotes: string[];
-  thoughts: string;
+export type TemplateType = 'accounting' | 'dining' | 'movie';
+
+export interface AccountingData {
+  type: 'accounting';
+  date: string;
+  location: string;
+  amount: string;
+  item: string;
 }
 
-// 记账模板
-export interface ExpenseData {
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;        // 餐饮/购物/娱乐等
-  note: string;
+export interface DiningData {
+  type: 'dining';
+  date: string;
+  location: string;
+  amount: string;
+  dish: string;
+  rating: string;
 }
 
-// OOTD穿搭模板
-export interface OOTDData {
-  styleTags: string[];
-  brands: string[];
-  fullBodyPhoto: string;
+export interface MovieData {
+  type: 'movie';
+  title: string;
+  genre: string;
+  score: string;
+  experience: string;
 }
 
-// 模板类型枚举
-export enum TemplateType {
-  READING = 'reading',
-  EXPENSE = 'expense',
-  OOTD = 'ootd'
+export type TemplateData = AccountingData | DiningData | MovieData;
+
+export function parseTemplateData(json: string): TemplateData | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json) as TemplateData;
+  } catch {
+    return null;
+  }
+}
+
+export function templateTypeToCollection(type: TemplateType): string {
+  if (type === 'accounting') return TEMPLATE_COLLECTION_ACCOUNTING;
+  if (type === 'dining') return TEMPLATE_COLLECTION_DINING;
+  return TEMPLATE_COLLECTION_MOVIE;
 }
